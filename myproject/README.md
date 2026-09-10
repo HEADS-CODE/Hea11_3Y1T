@@ -1,5 +1,5 @@
 # Hea11_3Y1T 
-(For now its the same README.md as the "myproject")
+(For now its the same README.md as the "myproject". Since that is the current project created :D)
 
 # TECHNICAL FORMATIVE ASSESSMENT: FROM ZERO TO FOUR PAGES: YOUR FIRST CODEIGNITER APPLICATION
 
@@ -11,6 +11,12 @@ A basic four-page Point-of-Sale website created using CodeIgniter 4. It demonstr
 - Composer
 - XAMPP with Apache
 - CodeIgniter 4
+
+## Hosted Application
+
+The application is available at:
+
+https://hea11-3y1t-myproject.onrender.com/
 
 ## Setup
 

@@ -11,6 +11,12 @@ A basic four-page Point-of-Sale website created using CodeIgniter 4. It demonstr
 - XAMPP with Apache
 - CodeIgniter 4
 
+## Hosted Application
+
+The application is available at:
+
+https://hea11-3y1t-myproject.onrender.com/
+
 ## Setup
 
 1. Place the repository inside the XAMPP `htdocs` folder.
@@ -23,7 +29,6 @@ From powershell: composer install
 5. Configure the default settings of the `.env` into the following:
 
 CI_ENVIRONMENT = development
-
 app.baseURL = 'http://localhost/Hea11_3Y1T/myproject/public/'
 
 6. Start Apache using the XAMPP Control Panel.
