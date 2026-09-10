@@ -1,4 +1,5 @@
-# Hea11_3Y1T
+# Hea11_3Y1T 
+(For now its the same README.md as the "myproject")
 
 # TECHNICAL FORMATIVE ASSESSMENT: FROM ZERO TO FOUR PAGES: YOUR FIRST CODEIGNITER APPLICATION
 
@@ -41,4 +42,4 @@ http://localhost/Hea11_3Y1T/myproject/public/
 - This version does not use a database. 
 - Customer and user records are stored in temporary PHP arrays inside their respective controllers.
 - The Customer Accounts page displays each customer's full name, email address, and phone number. 
-- The User Accounts page displays each user's username, full name, and role.  
+- The User Accounts page displays each user's username, full name, and role.
