@@ -75,7 +75,14 @@ class Accounts extends BaseController
         if (! $this->validateAccount()) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
-        $this->customerModel->insert($this->accountData());
+
+        $newId = $this->customerModel->insert($this->accountData());
+        if ($newId === false) {
+            $errors = $this->customerModel->errors();
+            $errors[] = 'The database did not save the new account. Check the customer_accounts table structure.';
+            return redirect()->back()->withInput()->with('errors', $errors);
+        }
+
         return redirect()->to(base_url('accounts'))->with('message', 'Customer account created successfully.');
     }
 
@@ -99,7 +106,12 @@ class Accounts extends BaseController
         if (! $this->validateAccount($id)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
-        $this->customerModel->update($id, $this->accountData());
+        if (! $this->customerModel->update($id, $this->accountData())) {
+            $errors = $this->customerModel->errors();
+            $errors[] = 'The database did not update this account.';
+            return redirect()->back()->withInput()->with('errors', $errors);
+        }
+
         return redirect()->to(base_url('accounts'))->with('message', 'Customer account updated successfully.');
     }
 
