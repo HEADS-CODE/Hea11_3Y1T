@@ -2,8 +2,8 @@ FROM php:8.2-apache
 
 # CodeIgniter requires intl and mbstring; the application uses MySQL.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libicu-dev \
-    && docker-php-ext-install intl mbstring mysqli pdo_mysql \
+    && apt-get install -y --no-install-recommends libicu-dev libonig-dev libzip-dev unzip \
+    && docker-php-ext-install intl mbstring mysqli pdo_mysql zip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && a2enmod rewrite
