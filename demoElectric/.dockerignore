@@ -1,0 +1,9 @@
+.git
+.gitignore
+.env
+writable/cache/*
+writable/logs/*
+writable/session/*
+writable/debugbar/*
+tests
+README.md
