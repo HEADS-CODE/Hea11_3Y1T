@@ -16,7 +16,7 @@ class App extends BaseConfig
      *
      * E.g., http://example.com/
      */
-    // This project is inside htdocs/Hea11_3Y1T/demoElectric.
+    // Local XAMPP fallback. Render supplies APP_BASE_URL as an environment variable.
     public string $baseURL = 'http://localhost/Hea11_3Y1T/demoElectric/';
 
     /**
@@ -41,7 +41,7 @@ class App extends BaseConfig
      * something else. If you have configured your web server to remove this file
      * from your site URIs, set this variable to an empty string.
      */
-    public string $indexPage = 'index.php';
+    public string $indexPage = '';
 
     /**
      * --------------------------------------------------------------------------
@@ -200,4 +200,14 @@ class App extends BaseConfig
      * @see http://www.w3.org/TR/CSP/
      */
     public bool $CSPEnabled = false;
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        $baseURL = getenv('APP_BASE_URL');
+        if ($baseURL !== false && $baseURL !== '') {
+            $this->baseURL = rtrim($baseURL, '/') . '/';
+        }
+    }
 }
