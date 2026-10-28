@@ -4,8 +4,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-test('the application returns a successful response', function () {
-    $response = $this->get('/');
+test('the member directory is publicly accessible', function () {
+    $response = $this->get('/members');
 
-    $response->assertOk()->assertSee('Add a task');
+    $response->assertOk()->assertSee('Registered members');
 });

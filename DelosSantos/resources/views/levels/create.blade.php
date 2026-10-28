@@ -1,0 +1,3 @@
+@extends('layouts.puihaha')
+@section('title', 'Add Level | Puihaha')
+@section('content')<div class="page-intro compact-intro"><div><span class="eyebrow">Membership structure</span><h1>Create a <em>level.</em></h1><p>Set the fee, validity period, and benefits for a membership plan.</p></div></div><section class="panel form-panel narrow-panel"><div class="panel-heading"><div><span class="eyebrow">Level details</span><h2>New membership level</h2></div></div><form method="POST" action="{{ route('levels.store') }}">@csrf @php($submitLabel = 'Save level') @include('levels._form')</form></section>@endsection

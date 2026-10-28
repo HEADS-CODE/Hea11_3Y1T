@@ -1,0 +1,3 @@
+@extends('layouts.puihaha')
+@section('title', 'Add Category | Puihaha')
+@section('content')<div class="page-intro compact-intro"><div><span class="eyebrow">Membership structure</span><h1>Create a <em>category.</em></h1><p>Define a clear group for your learning community.</p></div></div><section class="panel form-panel narrow-panel"><div class="panel-heading"><div><span class="eyebrow">Category details</span><h2>New membership category</h2></div></div><form method="POST" action="{{ route('categories.store') }}">@csrf @php($submitLabel = 'Save category') @include('categories._form')</form></section>@endsection

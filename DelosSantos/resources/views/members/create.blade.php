@@ -1,0 +1,3 @@
+@extends('layouts.puihaha')
+@section('title', 'Add Member | Puihaha')
+@section('content')<div class="page-intro compact-intro"><div><span class="eyebrow">Member management</span><h1>Register a <em>new member.</em></h1><p>A unique seven-character membership number beginning with <strong>17</strong> will be generated automatically.</p></div></div><section class="panel form-panel"><div class="panel-heading"><div><span class="eyebrow">Profile details</span><h2>Member information</h2></div><span class="required-note">* Required</span></div><form method="POST" action="{{ route('members.store') }}">@csrf @php($submitLabel = 'Save member') @include('members._form')</form></section>@endsection

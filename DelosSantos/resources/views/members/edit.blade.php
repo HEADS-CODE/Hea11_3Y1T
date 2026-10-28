@@ -1,0 +1,3 @@
+@extends('layouts.puihaha')
+@section('title', 'Edit Member | Puihaha')
+@section('content')<div class="page-intro compact-intro"><div><span class="eyebrow">Member management · {{ $member->membership_number }}</span><h1>Edit <em>{{ $member->full_name }}.</em></h1><p>Keep the member’s profile and membership assignment up to date.</p></div></div><section class="panel form-panel"><div class="panel-heading"><div><span class="eyebrow">Profile details</span><h2>Update information</h2></div><span class="required-note">* Required</span></div><form method="POST" action="{{ route('members.update', $member) }}">@csrf @method('PUT') @php($submitLabel = 'Save changes') @include('members._form')</form></section>@endsection

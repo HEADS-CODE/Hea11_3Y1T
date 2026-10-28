@@ -5,6 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <title>Taskflow | My Tasks</title>
+        <script>if (localStorage.getItem('puihaha-theme') === 'dark') document.documentElement.classList.add('dark-mode');</script>
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="tasks-page">
@@ -14,7 +15,7 @@
                     <span class="brand-mark"><span></span><span></span><span></span></span>
                     <span>taskflow</span>
                 </a>
-                <div class="connection-pill"><span class="connection-dot"></span> MySQL connected</div>
+                <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" title="Switch to dark mode"><span class="theme-toggle-icon" data-theme-icon aria-hidden="true">☾</span><span data-theme-label>Dark mode</span></button>
             </header>
 
             <main class="content-wrap">

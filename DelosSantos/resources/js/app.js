@@ -1,6 +1,26 @@
 import './bootstrap';
 
 document.addEventListener('DOMContentLoaded', () => {
+    const themeToggle = document.querySelector('[data-theme-toggle]');
+    const themeIcon = document.querySelector('[data-theme-icon]');
+    const themeLabel = document.querySelector('[data-theme-label]');
+
+    const applyTheme = (theme) => {
+        const isDark = theme === 'dark';
+        document.documentElement.classList.toggle('dark-mode', isDark);
+        themeToggle?.setAttribute('aria-pressed', String(isDark));
+        themeToggle?.setAttribute('title', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+        if (themeIcon) themeIcon.textContent = isDark ? '☼' : '☾';
+        if (themeLabel) themeLabel.textContent = isDark ? 'Light mode' : 'Dark mode';
+    };
+
+    applyTheme(localStorage.getItem('puihaha-theme') || 'light');
+    themeToggle?.addEventListener('click', () => {
+        const nextTheme = document.documentElement.classList.contains('dark-mode') ? 'light' : 'dark';
+        localStorage.setItem('puihaha-theme', nextTheme);
+        applyTheme(nextTheme);
+    });
+
     const description = document.querySelector('#description');
     const characterCount = document.querySelector('[data-character-count]');
     const form = document.querySelector('[data-task-form]');
@@ -45,6 +65,12 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (emptyFilter) emptyFilter.hidden = visibleCount > 0;
+        });
+    });
+
+    document.querySelectorAll('[data-confirm]').forEach((confirmForm) => {
+        confirmForm.addEventListener('submit', (event) => {
+            if (!window.confirm(confirmForm.dataset.confirm)) event.preventDefault();
         });
     });
 });

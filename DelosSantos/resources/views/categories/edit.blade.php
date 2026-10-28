@@ -1,0 +1,3 @@
+@extends('layouts.puihaha')
+@section('title', 'Edit Category | Puihaha')
+@section('content')<div class="page-intro compact-intro"><div><span class="eyebrow">Membership structure</span><h1>Edit <em>{{ $category->name }}.</em></h1><p>Refine this category without losing its member assignments.</p></div></div><section class="panel form-panel narrow-panel"><div class="panel-heading"><div><span class="eyebrow">Category details</span><h2>Update membership category</h2></div></div><form method="POST" action="{{ route('categories.update', $category) }}">@csrf @method('PUT') @php($submitLabel = 'Save changes') @include('categories._form')</form></section>@endsection

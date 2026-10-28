@@ -1,0 +1,3 @@
+@extends('layouts.puihaha')
+@section('title', 'Edit Level | Puihaha')
+@section('content')<div class="page-intro compact-intro"><div><span class="eyebrow">Membership structure</span><h1>Edit <em>{{ $level->name }}.</em></h1><p>Refine this level while keeping its member assignments safe.</p></div></div><section class="panel form-panel narrow-panel"><div class="panel-heading"><div><span class="eyebrow">Level details</span><h2>Update membership level</h2></div></div><form method="POST" action="{{ route('levels.update', $level) }}">@csrf @method('PUT') @php($submitLabel = 'Save changes') @include('levels._form')</form></section>@endsection
