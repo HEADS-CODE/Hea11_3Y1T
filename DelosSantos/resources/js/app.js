@@ -21,6 +21,21 @@ document.addEventListener('DOMContentLoaded', () => {
         applyTheme(nextTheme);
     });
 
+    const mobileMenuToggle = document.querySelector('[data-mobile-nav-toggle]');
+    const mobileNav = document.getElementById('portal-main-nav');
+    const closeMobileNav = () => {
+        document.querySelector('.portal-topbar')?.classList.remove('portal-nav-open');
+        mobileMenuToggle?.setAttribute('aria-expanded', 'false');
+    };
+    mobileMenuToggle?.addEventListener('click', () => {
+        const isOpen = document.querySelector('.portal-topbar')?.classList.toggle('portal-nav-open');
+        mobileMenuToggle.setAttribute('aria-expanded', String(Boolean(isOpen)));
+    });
+    mobileNav?.querySelectorAll('a').forEach((link) => link.addEventListener('click', closeMobileNav));
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeMobileNav();
+    });
+
     const description = document.querySelector('#description');
     const characterCount = document.querySelector('[data-character-count]');
     const form = document.querySelector('[data-task-form]');
@@ -276,6 +291,29 @@ document.addEventListener('DOMContentLoaded', () => {
         const stop = () => clearTimeout(timeout);
         toast.addEventListener('mouseenter', stop); toast.addEventListener('mouseleave', start); start();
         toast.querySelector('[data-toast-close]')?.addEventListener('click', () => toast.remove());
+    });
+
+    document.querySelectorAll('[data-weather-card]').forEach((card) => {
+        const latitude = card.dataset.latitude;
+        const longitude = card.dataset.longitude;
+        const status = card.querySelector('[data-weather-status]');
+        const details = card.querySelector('[data-weather-details]');
+        if (!latitude || !longitude) {
+            if (status) status.textContent = 'Add a map location to see local weather here.';
+            return;
+        }
+
+        fetch(`/weather?lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}`, { headers: { Accept: 'application/json' } })
+            .then((response) => response.ok ? response.json() : Promise.reject())
+            .then((weather) => {
+                if (status) status.hidden = true;
+                if (details) details.hidden = false;
+                card.querySelector('[data-weather-temperature]').textContent = `${weather.temperature}°C`;
+                card.querySelector('[data-weather-place]').textContent = weather.place;
+                card.querySelector('[data-weather-description]').textContent = weather.description;
+                card.querySelector('[data-weather-meta]').textContent = `Humidity ${weather.humidity}% · Wind ${weather.wind_speed} m/s`;
+            })
+            .catch(() => { if (status) status.textContent = 'Weather is currently unavailable. Your membership location remains saved.'; });
     });
 
     document.querySelectorAll('[data-insight-tab]').forEach((button) => button.addEventListener('click', () => {

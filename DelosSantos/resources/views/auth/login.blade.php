@@ -4,18 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ ucfirst($role) }} Login | Puihaha</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @include('components.brand-head')@vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="auth-page auth-{{ $role }}">
     <main class="auth-shell">
-        <section class="auth-scene">
+        <section class="auth-scene"><x-brand-logo variant="full" size="132" class="auth-scene-logo" />
             <span class="auth-kicker">Puihaha E-learning Platform</span>
             <h1>{{ $role === 'admin' ? 'Guide the learning journey.' : 'Make room for what matters.' }}</h1>
             <p>{{ $role === 'admin' ? 'A calm control space for members, levels, and the work behind every learning journey.' : 'Your personal learning space, ready when you are.' }}</p>
             <span class="auth-orbit" aria-hidden="true">✦</span>
         </section>
         <section class="auth-card">
-            <a class="auth-brand" href="{{ route($role === 'admin' ? 'login.admin' : 'login.member') }}"><span class="brand-mark">P</span><span><strong>Puihaha</strong><small>{{ ucfirst($role) }} access</small></span></a>
+            <a class="auth-brand" href="{{ route($role === 'admin' ? 'login.admin' : 'login.member') }}"><x-brand-logo variant="symbol" size="44" /><span><strong>Puihaha</strong><small>{{ ucfirst($role) }} access</small></span></a>
             <div class="auth-heading"><span class="eyebrow">{{ ucfirst($role) }} portal</span><h2>Welcome <em>back.</em></h2><p>Sign in with your {{ $role }} account to continue.</p></div>
             @if (session('success'))<div class="auth-alert auth-alert-success">{{ session('success') }}</div>@endif
             @if ($errors->any())<div class="auth-alert auth-alert-error">{{ $errors->first() }}</div>@endif

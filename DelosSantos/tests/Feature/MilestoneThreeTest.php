@@ -5,8 +5,10 @@ use App\Models\Member;
 use App\Models\MembershipCategory;
 use App\Models\MembershipLevel;
 use App\Models\User;
+use App\Notifications\RoleScopedResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Notification;
@@ -125,6 +127,88 @@ test('member and administrator password resets remain isolated for the same emai
 
     expect($memberReset)->toBe(Password::PASSWORD_RESET)
         ->and(Hash::check('MemberNew123', $memberUser->fresh()->password))->toBeTrue();
+});
+
+test('password reset notifications contain the correct role in their URLs', function () {
+    Notification::fake();
+    $member = makePendingMemberForAuthTests('reset-url@example.test');
+    $member->forceFill(['status' => 'active'])->save();
+    $memberUser = User::factory()->member($member)->create(['email' => $member->email]);
+    $admin = User::factory()->admin()->create(['email' => $member->email]);
+
+    Password::broker('members')->sendResetLink(['email' => $memberUser->email, 'role' => User::ROLE_MEMBER]);
+    Password::broker('admins')->sendResetLink(['email' => $admin->email, 'role' => User::ROLE_ADMIN]);
+
+    Notification::assertSentTo($memberUser, RoleScopedResetPassword::class, function (RoleScopedResetPassword $notification) use ($memberUser): bool {
+        return str_contains($notification->toMail($memberUser)->actionUrl, '/reset-password/member/');
+    });
+    Notification::assertSentTo($admin, RoleScopedResetPassword::class, function (RoleScopedResetPassword $notification) use ($admin): bool {
+        return str_contains($notification->toMail($admin)->actionUrl, '/reset-password/admin/');
+    });
+});
+
+test('member and administrator destinations remain role-isolated', function () {
+    $member = makePendingMemberForAuthTests('destination-member@example.test');
+    $member->forceFill(['status' => 'active'])->save();
+    $memberUser = User::factory()->member($member)->create(['email' => $member->email]);
+    $memberUser->forceFill(['email_verified_at' => now()])->save();
+    $admin = User::factory()->admin()->create();
+    $admin->forceFill(['email_verified_at' => now()])->save();
+
+    $this->actingAs($memberUser)->get(route('admin.dashboard'))->assertForbidden();
+    $this->actingAs($admin)->get(route('tasks.index'))->assertForbidden();
+});
+
+test('weather returns normalized server-side data and caches coordinates', function () {
+    Http::fake([
+        'https://api.openweathermap.org/*' => Http::response([
+            'name' => 'Manila',
+            'main' => ['temp' => 28.64, 'humidity' => 78],
+            'weather' => [['description' => 'light rain']],
+            'wind' => ['speed' => 2.4],
+        ]),
+    ]);
+    config(['services.openweather.key' => 'test-key']);
+    $admin = User::factory()->admin()->create();
+    $admin->forceFill(['email_verified_at' => now()])->save();
+
+    $this->actingAs($admin)->getJson(route('weather.show', ['lat' => 14.5995, 'lon' => 120.9842]))
+        ->assertOk()
+        ->assertJsonPath('place', 'Manila')
+        ->assertJsonPath('temperature', 28.6);
+    $this->actingAs($admin)->getJson(route('weather.show', ['lat' => 14.5995, 'lon' => 120.9842]))->assertOk();
+
+    Http::assertSentCount(1);
+});
+
+test('weather fails gracefully when the server key is missing', function () {
+    config(['services.openweather.key' => null]);
+    $admin = User::factory()->admin()->create();
+    $admin->forceFill(['email_verified_at' => now()])->save();
+
+    $this->actingAs($admin)->getJson(route('weather.show', ['lat' => 14.5995, 'lon' => 120.9842]))
+        ->assertStatus(503)
+        ->assertJson(['message' => 'Weather is currently unavailable.']);
+});
+
+test('administrator reports render, export, and remain isolated from members', function () {
+    $admin = User::factory()->admin()->create();
+    $admin->forceFill(['email_verified_at' => now()])->save();
+
+    $this->actingAs($admin)->get(route('admin.reports.index'))
+        ->assertOk()
+        ->assertSee('Member report.');
+
+    $this->actingAs($admin)->get(route('admin.reports.export', ['type' => 'members']))
+        ->assertOk()
+        ->assertHeader('content-disposition');
+
+    $member = makePendingMemberForAuthTests('reports-member@example.test');
+    $member->forceFill(['status' => 'active'])->save();
+    $memberUser = User::factory()->member($member)->create(['email' => $member->email]);
+    $memberUser->forceFill(['email_verified_at' => now()])->save();
+
+    $this->actingAs($memberUser)->get(route('admin.reports.index'))->assertForbidden();
 });
 
 test('member registration remains usable when the maps key is missing', function () {

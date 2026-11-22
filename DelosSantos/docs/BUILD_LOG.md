@@ -96,3 +96,19 @@
 - Limited the client-side password-complexity rule to new-password forms so existing login credentials are submitted normally. This fixes the red validation state that previously prevented the administrator login form from being submitted.
 - Granted the local Windows account modify access to the existing Laravel storage and Pest cache folders. Normal Windows Laravel tests now pass without the prior view-compilation failure.
 - Verification: 25 tests passed with 127 assertions; 91 routes listed; `npm run build` passed; public login and registration pages returned HTTP 200 and guest-protected portal pages redirected as expected.
+
+## Final local completion — weather, supplied branding, responsive UI, and reports
+
+- Corrected the real Laravel password-reset notification so every member/admin reset email generates a role-specific URL. Added regression coverage for notification URL payloads, same-email role isolation, and cross-role destination blocking.
+- Added the server-side OpenWeather endpoint with validated coordinates, configuration-only key access, ten-minute coordinate caching, normalized responses, and graceful missing-key/provider-error handling. Added member saved-location weather and administrator configured office-location weather cards without exposing the provider key to Blade or JavaScript.
+- Integrated the supplied Puihaha light/dark SVG logos and full authentication background. Auth views now use shared logo/head components, the legacy brand-mark CSS was removed, the supplied background is runtime-resolved from `public/assets/backgrounds/`, and receipt/task branding uses the same component.
+- Added an accessible sliding light/dark switch, keyboard-friendly mobile navigation dropdown, reduced-motion support, supplied profile/bell theme assets, and consistent eye-icon password controls. Receipt Go Back remains outside the printable card and is hidden by print CSS.
+- Added administrator Reports for members, transactions, payments, and expiring memberships with category/level/status/date/search filters and CSV export. Added administrator-only access and a member-isolation regression test.
+- No migration was needed for this completion batch. `.env`, passwords, API keys, SQL exports, and private data were not modified or displayed.
+- Final verification: 30 tests passed with 143 assertions; 94 routes listed; focused reports routes registered; Vite build passed; Blade/application caches cleared; login, registration, forgot/reset pages and supplied logo/background assets returned HTTP 200; guest access to `/admin/reports` redirected as expected; `git diff --check` reported no whitespace errors.
+
+## Known issues / fix at the end
+
+- The Vite build keeps the absolute `/assets/backgrounds/auth-background.svg` URL unresolved at build time by design; it is served correctly at runtime and returned HTTP 200 locally.
+- The supplied logo ZIP did not contain the three separately named favicon files referenced in its prompt. The shared head component uses the supplied light-mode 512 PNG as the favicon and Apple touch icon fallback; no invented logo asset was added.
+- A second live responsive browser tab could not be opened by the local browser-preview helper before timeout. The current login page rendered in the live browser accessibility tree, and HTTP plus automated feature checks passed. Final visual checks at 390px should still be performed manually in Edge before presentation.

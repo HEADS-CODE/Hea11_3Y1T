@@ -18,6 +18,8 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\MemberRequestController;
 use App\Http\Controllers\AdminRequestController;
 use App\Http\Controllers\ActivityController;
+use App\Http\Controllers\WeatherController;
+use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/login/member');
@@ -47,6 +49,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/account/inactive', [AccountStateController::class, 'inactiveNotice'])->name('account.inactive');
     Route::post('/verify-email/resend', [VerificationController::class, 'resend'])->name('verification.resend');
     Route::middleware('account.ready')->group(function () {
+        Route::get('/weather', [WeatherController::class, 'show'])->middleware('throttle:30,1')->name('weather.show');
         Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
         Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
@@ -78,6 +81,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/admin/requests/{memberRequest}/reject', [AdminRequestController::class, 'reject'])->name('admin.requests.reject');
         Route::get('/admin/requests/{memberRequest}/documents/{document}', [AdminRequestController::class, 'downloadDocument'])->name('admin.requests.documents.download');
         Route::get('/admin/activity', [ActivityController::class, 'index'])->name('admin.activity.index');
+        Route::get('/admin/reports', [ReportController::class, 'index'])->name('admin.reports.index');
+        Route::get('/admin/reports/export', [ReportController::class, 'export'])->name('admin.reports.export');
     });
 
     Route::middleware(['account.ready', 'role:member'])->group(function () {

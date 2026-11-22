@@ -39,4 +39,9 @@ return [
         'maps_key' => env('GOOGLE_MAPS_API_KEY'),
     ],
 
+    'openweather' => [
+        'key' => env('OPENWEATHER_KEY'),
+        'base_url' => env('OPENWEATHER_BASE_URL', 'https://api.openweathermap.org/data/2.5/weather'),
+    ],
+
 ];

@@ -8,6 +8,7 @@
     <article class="metric-card"><span class="metric-label">Pending transactions</span><strong>{{ $stats['pending_transactions'] }}</strong><small>Awaiting payment or review</small></article>
     <article class="metric-card"><span class="metric-label">Collected payments</span><strong>₱{{ number_format((float) $stats['collected_payments'], 2) }}</strong><small>Recorded paid amounts</small></article>
 </div>
+@include('components.weather-card', ['latitude' => $weatherLocation['latitude'], 'longitude' => $weatherLocation['longitude'], 'label' => 'Office weather'])
 <section class="panel table-panel"><div class="panel-heading"><div><span class="eyebrow">Latest activity</span><h2>Recent transactions</h2></div><a class="button button-ghost" href="{{ route('admin.transactions.index') }}">View all</a></div>
     @if ($recentTransactions->isNotEmpty())
     <div class="table-scroll"><table class="members-table"><thead><tr><th>Reference</th><th>Member</th><th>Type</th><th>Amount</th><th>Status</th><th>Created</th></tr></thead><tbody>

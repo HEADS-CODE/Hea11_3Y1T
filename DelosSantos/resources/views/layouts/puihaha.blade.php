@@ -6,7 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Puihaha E-Learning Platform')</title>
     <meta name="description" content="Puihaha membership management platform">
-    <script>if (localStorage.getItem('puihaha-theme') === 'dark') document.documentElement.classList.add('dark-mode');</script>
+    @include('components.brand-head')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="platform-page">

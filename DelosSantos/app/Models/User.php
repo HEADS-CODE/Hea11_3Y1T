@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Notifications\RoleScopedResetPassword;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -111,5 +112,10 @@ class User extends Authenticatable
             && ! $this->isAwaitingApproval()
             && ! $this->isBlocked()
             && ! $this->isInactiveMember();
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new RoleScopedResetPassword($token, (string) $this->role));
     }
 }

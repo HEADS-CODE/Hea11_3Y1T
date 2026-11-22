@@ -1,9 +1,10 @@
 <header class="platform-topbar portal-topbar {{ auth()->user()?->isMember() ? 'member-topbar' : 'admin-topbar' }}">
   <div class="portal-topbar-inner">
-    <a class="platform-brand portal-brand" href="{{ auth()->user()?->isAdmin() ? route('admin.dashboard') : route('tasks.index') }}"><span class="brand-mark">P</span><span><strong>Puihaha</strong><small>{{ auth()->user()?->isAdmin() ? 'Administrator portal' : 'Member portal' }}</small></span></a>
-    <nav class="platform-nav portal-nav portal-main-nav" aria-label="Main navigation">
+    <a class="platform-brand portal-brand" href="{{ auth()->user()?->isAdmin() ? route('admin.dashboard') : route('tasks.index') }}"><x-brand-logo variant="symbol" size="36" /><span><strong>Puihaha</strong><small>{{ auth()->user()?->isAdmin() ? 'Administrator portal' : 'Member portal' }}</small></span></a>
+    <button class="portal-mobile-menu" type="button" data-mobile-nav-toggle aria-expanded="false" aria-controls="portal-main-nav"><span class="portal-mobile-menu-icon" aria-hidden="true">☰</span><span>Menu</span></button>
+    <nav class="platform-nav portal-nav portal-main-nav" id="portal-main-nav" aria-label="Main navigation">
         @if(auth()->user()?->isAdmin())
-            <a class="{{ request()->routeIs('admin.dashboard') ? 'is-active' : '' }}" href="{{ route('admin.dashboard') }}">Dashboard</a><a class="{{ request()->routeIs('members.*') ? 'is-active' : '' }}" href="{{ route('members.index') }}">Members</a><a class="{{ request()->routeIs('categories.*') ? 'is-active' : '' }}" href="{{ route('categories.index') }}">Categories</a><a class="{{ request()->routeIs('levels.*') ? 'is-active' : '' }}" href="{{ route('levels.index') }}">Levels</a><a class="{{ request()->routeIs('admin.approvals.*') ? 'is-active' : '' }}" href="{{ route('admin.approvals.index') }}">Approvals</a><a class="{{ request()->routeIs('admin.transactions.*') ? 'is-active' : '' }}" href="{{ route('admin.transactions.index') }}">Transactions</a>@if(Route::has('admin.activity.index'))<a class="{{ request()->routeIs('admin.activity.*') ? 'is-active' : '' }}" href="{{ route('admin.activity.index') }}">Activity log</a>@endif
+            <a class="{{ request()->routeIs('admin.dashboard') ? 'is-active' : '' }}" href="{{ route('admin.dashboard') }}">Dashboard</a><a class="{{ request()->routeIs('members.*') ? 'is-active' : '' }}" href="{{ route('members.index') }}">Members</a><a class="{{ request()->routeIs('categories.*') ? 'is-active' : '' }}" href="{{ route('categories.index') }}">Categories</a><a class="{{ request()->routeIs('levels.*') ? 'is-active' : '' }}" href="{{ route('levels.index') }}">Levels</a><a class="{{ request()->routeIs('admin.approvals.*') ? 'is-active' : '' }}" href="{{ route('admin.approvals.index') }}">Approvals</a><a class="{{ request()->routeIs('admin.transactions.*') ? 'is-active' : '' }}" href="{{ route('admin.transactions.index') }}">Transactions</a><a class="{{ request()->routeIs('admin.reports.*') ? 'is-active' : '' }}" href="{{ route('admin.reports.index') }}">Reports</a>@if(Route::has('admin.activity.index'))<a class="{{ request()->routeIs('admin.activity.*') ? 'is-active' : '' }}" href="{{ route('admin.activity.index') }}">Activity log</a>@endif
         @else
             <a class="{{ request()->routeIs('tasks.*') ? 'is-active' : '' }} js-task-scroll" href="{{ route('tasks.index') }}#task-section">My Tasks</a><a class="{{ request()->routeIs('member.transactions') ? 'is-active' : '' }}" href="{{ route('member.transactions') }}">History</a>
         @endif
@@ -21,7 +22,7 @@
             <button type="button" class="profile-signout" data-signout-trigger>Sign out</button>
         </div>
         </div>
-        <button class="portal-theme-button theme-toggle" type="button" data-theme-toggle aria-pressed="false" title="Switch to dark mode"><span class="theme-toggle-icon" data-theme-icon aria-hidden="true">☾</span><span class="theme-label" data-theme-label>Dark mode</span></button>
+        <button class="portal-theme-button theme-toggle" type="button" data-theme-toggle aria-pressed="false" title="Switch to dark mode"><span class="theme-switch-track" aria-hidden="true"><span class="theme-switch-thumb"><span class="theme-toggle-icon" data-theme-icon>☾</span></span></span><span class="theme-label" data-theme-label>Dark mode</span></button>
     </div>
   </div>
 </header>

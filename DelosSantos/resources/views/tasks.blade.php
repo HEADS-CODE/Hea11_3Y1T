@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <title>Taskflow | My Tasks</title>
-        <script>if (localStorage.getItem('puihaha-theme') === 'dark') document.documentElement.classList.add('dark-mode');</script>
+        @include('components.brand-head')
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="tasks-page">
@@ -49,6 +49,10 @@
                         <span class="stat-icon icon-check" aria-hidden="true">✓</span>
                     </div>
                 </section>
+
+                @if (auth()->user()->member)
+                    @include('components.weather-card', ['latitude' => auth()->user()->member->latitude, 'longitude' => auth()->user()->member->longitude, 'label' => 'Your saved location'])
+                @endif
 
                 <section id="task-section" class="workspace-grid">
                     <div class="panel create-panel">

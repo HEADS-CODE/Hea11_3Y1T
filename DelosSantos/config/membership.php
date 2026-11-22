@@ -20,6 +20,10 @@ return [
         'category_change' => 'Category change',
         'profile_change' => 'Profile change',
     ],
+    'weather' => [
+        'default_latitude' => env('WEATHER_DEFAULT_LATITUDE', 14.5995),
+        'default_longitude' => env('WEATHER_DEFAULT_LONGITUDE', 120.9842),
+    ],
     'initial_admin' => [
         'name' => env('INITIAL_ADMIN_NAME', 'Puihaha Administrator'),
         'email' => env('INITIAL_ADMIN_EMAIL'),

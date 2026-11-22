@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Member Registration | Puihaha</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @include('components.brand-head')@vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="auth-page auth-member">
 <main class="auth-shell">
-    <section class="auth-scene"><span class="auth-kicker">Join Puihaha</span><h1>Begin your<br><em>next chapter.</em></h1><p>Create a member account and choose the learning membership that fits your journey.</p><span class="auth-orbit" aria-hidden="true">✦</span></section>
+    <section class="auth-scene"><x-brand-logo variant="full" size="132" class="auth-scene-logo" /><span class="auth-kicker">Join Puihaha</span><h1>Begin your<br><em>next chapter.</em></h1><p>Create a member account and choose the learning membership that fits your journey.</p><span class="auth-orbit" aria-hidden="true">✦</span></section>
     <section class="auth-card auth-register-card">
-        <a class="auth-brand" href="{{ route('login.member') }}"><span class="brand-mark">P</span><span><strong>Puihaha</strong><small>Member registration</small></span></a>
+        <a class="auth-brand" href="{{ route('login.member') }}"><x-brand-logo variant="symbol" size="44" /><span><strong>Puihaha</strong><small>Member registration</small></span></a>
         <div class="auth-heading"><span class="eyebrow">New member</span><h2>Start <em>here.</em></h2><p>Confirm your email, then wait for membership approval.</p></div>
         @if ($errors->any())<div class="auth-alert auth-alert-error">Please review the highlighted details.</div>@endif
         <form method="POST" action="{{ route('register.member.submit') }}" class="auth-form register-form" data-member-registration>

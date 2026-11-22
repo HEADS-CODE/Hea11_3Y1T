@@ -20,7 +20,11 @@ class DashboardController extends Controller
         ];
         $recentTransactions = MembershipTransaction::with(['member', 'level', 'payment'])->latest()->limit(8)->get();
         $recentActivity = AuditLog::with('user')->latest()->limit(10)->get();
+        $weatherLocation = [
+            'latitude' => config('membership.weather.default_latitude'),
+            'longitude' => config('membership.weather.default_longitude'),
+        ];
 
-        return view('dashboard.index', compact('stats', 'recentTransactions', 'recentActivity'));
+        return view('dashboard.index', compact('stats', 'recentTransactions', 'recentActivity', 'weatherLocation'));
     }
 }
