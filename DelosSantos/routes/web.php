@@ -60,6 +60,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/admin/profile', [AdminProfileController::class, 'edit'])->name('admin.profile.edit');
         Route::put('/admin/profile', [AdminProfileController::class, 'update'])->name('admin.profile.update');
         Route::resource('members', MemberController::class);
+        Route::get('/members/{member}/documents', [MemberController::class, 'documents'])->name('members.documents.index');
+        Route::get('/members/{member}/documents/{document}/view', [MemberController::class, 'viewDocument'])->name('members.documents.view');
         Route::post('/members/{member}/archive', [MemberController::class, 'archive'])->name('members.archive');
         Route::post('/members/{member}/restore', [MemberController::class, 'restore'])->name('members.restore');
         Route::post('/members/{member}/toggle-status', [MemberController::class, 'toggleStatus'])->name('members.toggle-status');

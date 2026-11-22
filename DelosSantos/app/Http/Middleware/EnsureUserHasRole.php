@@ -12,7 +12,12 @@ class EnsureUserHasRole
     {
         $user = $request->user();
 
-        abort_unless($user && ! $user->isBlocked() && in_array($user->role, $roles, true), 403);
+        if (! $user) {
+            return redirect()->route('login.member')
+                ->with('error', 'Your session expired. Please sign in again.');
+        }
+
+        abort_unless(! $user->isBlocked() && in_array($user->role, $roles, true), 403);
 
         return $next($request);
     }

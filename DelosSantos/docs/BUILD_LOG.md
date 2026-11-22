@@ -126,3 +126,36 @@
 
 - Before running the pending migration on the local MySQL database, make a fresh phpMyAdmin Custom export of `tw31_tasks` containing structure and data.
 - Manually test permanent deletion with a member who has an approved transaction, payment, task, change request, and private document: confirm only the non-financial records disappear, while the administrator transaction register, receipt, report, and audit entry remain available.
+
+## QA feedback — visual and interaction refinements
+
+- Centered in-app success/error/info notices so they no longer compete with the portal navigation or browser chrome.
+- Added a plain-language Remember me explanation; browser password-manager prompts remain browser-controlled and are not styled by the Laravel app.
+- Normalized the eye icon path in every password field at runtime, including registration and reset-password confirmation fields.
+- Improved the member-directory filter spacing and mobile grouping, with a clearer Archived control and stronger Clear action.
+- Reflowed the permanent-delete confirmation form so the exact-name instruction, input, and bold action are visibly separated.
+- Deferred registration proof documents and the View Documents profile page to the next schema-backed batch; no partial upload flow was added here.
+
+## QA feedback — expired-session recovery
+
+- Added exception handling for Laravel 419 CSRF/session-expiry responses: browser requests return to the member login form with a session-expired message.
+- Added a defensive unauthenticated role-middleware redirect to the member login form.
+- Preserved genuine wrong-role 403 responses so authorization boundaries are not hidden.
+- Added regression tests for expired-session recovery and real role mismatch behavior.
+- Verification: 32 tests passed with 154 assertions; all 94 routes listed; Vite build passed; a real browser-style POST without a CSRF token returned a 302 redirect to the member login route.
+
+## QA feedback — toast alignment
+
+- Centered the message text inside every shared toast notification.
+- Moved every toast close button to the far-right edge and vertically centered it.
+- Verification: 32 tests passed with 154 assertions; all 94 routes listed; Vite build passed; login pages returned HTTP 200.
+
+## QA feedback — location guidance and member documents
+
+- Removed the Remember me helper sentence from the login pages.
+- Changed the shared Maps script to a single deferred loader so the map callback can initialize reliably without competing async loads.
+- Updated the member weather card to distinguish a saved typed address from the latitude/longitude pin required by OpenWeather, with a direct Edit details link when coordinates are missing.
+- Added an administrator-only Member Documents page and inline private-file viewer. The existing `MemberDocumentPolicy` still protects both the list and file route; members cannot access either route.
+- Added a View documents action to the member profile, keeping Archive/Restore below it.
+- Added regression coverage for document listing, member isolation, and inline administrator viewing.
+- Current database check: member records currently have no latitude/longitude pairs, while an administrator profile has coordinates. Existing member addresses therefore need a map pin captured and approved before member weather can load.

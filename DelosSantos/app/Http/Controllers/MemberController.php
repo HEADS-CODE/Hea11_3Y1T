@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AuditLog;
 use App\Models\EmailVerificationToken;
 use App\Models\Member;
+use App\Models\MemberDocument;
 use App\Models\MembershipCategory;
 use App\Models\MembershipLevel;
 use App\Models\User;
@@ -14,8 +15,10 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class MemberController extends Controller
 {
@@ -74,6 +77,28 @@ class MemberController extends Controller
         $member->load(['category', 'level']);
 
         return view('members.show-v2', compact('member'));
+    }
+
+    public function documents(Member $member): View
+    {
+        $member->load(['documents' => fn ($query) => $query->with('request')->latest()]);
+
+        return view('members.documents', compact('member'));
+    }
+
+    public function viewDocument(Member $member, MemberDocument $document): BinaryFileResponse
+    {
+        abort_unless((int) $document->member_id === (int) $member->id, 404);
+        Gate::authorize('view', $document);
+
+        $disk = Storage::disk('member_private');
+        abort_unless($disk->exists($document->storage_path), 404);
+
+        return response()->file($disk->path($document->storage_path), [
+            'Content-Type' => $document->mime_type,
+            'Content-Disposition' => 'inline; filename="'.str_replace('"', '', $document->original_name).'"',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     public function edit(Member $member): View

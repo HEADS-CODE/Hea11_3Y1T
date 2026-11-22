@@ -93,3 +93,41 @@ test('member and administrator request pages render', function () {
     $this->actingAs($admin)->get(route('admin.requests.index'))->assertOk()->assertSee('Member');
     $this->actingAs($admin)->get(route('admin.activity.index'))->assertOk()->assertSee('Activity');
 });
+
+test('administrators can view a member document while members cannot', function () {
+    config(['filesystems.disks.member_private.root' => sys_get_temp_dir().'\\puihaha-document-view']);
+    ['member' => $member, 'user' => $user, 'admin' => $admin] = makeBatchBMember('document-view@example.test');
+    $memberRequest = $member->requests()->create([
+        'submitted_by_user_id' => $user->id,
+        'request_type' => MemberRequest::TYPE_PROFILE_CHANGE,
+        'source' => MemberRequest::SOURCE_ONLINE,
+        'status' => MemberRequest::STATUS_APPROVED,
+        'consent_at' => now(),
+    ]);
+    Storage::disk('member_private')->put('identity.pdf', '%PDF-1.4 test');
+    $document = MemberDocument::create([
+        'member_request_id' => $memberRequest->id,
+        'member_id' => $member->id,
+        'uploaded_by_user_id' => $user->id,
+        'document_type' => 'identity',
+        'original_name' => 'identity.pdf',
+        'storage_path' => 'identity.pdf',
+        'mime_type' => 'application/pdf',
+        'extension' => 'pdf',
+        'size_bytes' => 13,
+        'privacy_consented_at' => now(),
+    ]);
+    expect(Storage::disk('member_private')->exists($document->storage_path))->toBeTrue();
+
+    $this->actingAs($admin)
+        ->get(route('members.documents.index', $member))
+        ->assertOk()
+        ->assertSee('identity.pdf');
+    $this->actingAs($user)
+        ->get(route('members.documents.index', $member))
+        ->assertForbidden();
+    $this->actingAs($admin)
+        ->get(route('members.documents.view', [$member, $document]))
+        ->assertOk()
+        ->assertHeader('Content-Type', 'application/pdf');
+});

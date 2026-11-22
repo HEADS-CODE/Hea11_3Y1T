@@ -51,7 +51,7 @@
                 </section>
 
                 @if (auth()->user()->member)
-                    @include('components.weather-card', ['latitude' => auth()->user()->member->latitude, 'longitude' => auth()->user()->member->longitude, 'label' => 'Your saved location'])
+                    @include('components.weather-card', ['latitude' => auth()->user()->member->latitude, 'longitude' => auth()->user()->member->longitude, 'label' => 'Your saved location', 'editUrl' => route('member.profile-change')])
                 @endif
 
                 <section id="task-section" class="workspace-grid">

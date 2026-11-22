@@ -214,15 +214,19 @@ window.initPuihahaMaps = () => {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('[data-password-toggle]').forEach((button) => button.addEventListener('click', () => {
-        const input = document.getElementById(button.dataset.passwordToggle);
-        if (!input) return;
-        input.type = input.type === 'password' ? 'text' : 'password';
-        const isVisible = input.type === 'text';
-        button.classList.toggle('is-visible', isVisible);
-        button.setAttribute('aria-label', isVisible ? 'Hide password' : 'Show password');
-        button.setAttribute('title', isVisible ? 'Hide password' : 'Show password');
-    }));
+    const canonicalEyePath = 'M2.5 12s3.4-5.5 9.5-5.5 9.5 5.5 9.5 5.5-3.4 5.5-9.5 5.5S2.5 12 2.5 12Z';
+    document.querySelectorAll('[data-password-toggle]').forEach((button) => {
+        button.querySelector('.password-toggle-icon > path:not(.eye-slash)')?.setAttribute('d', canonicalEyePath);
+        button.addEventListener('click', () => {
+            const input = document.getElementById(button.dataset.passwordToggle);
+            if (!input) return;
+            input.type = input.type === 'password' ? 'text' : 'password';
+            const isVisible = input.type === 'text';
+            button.classList.toggle('is-visible', isVisible);
+            button.setAttribute('aria-label', isVisible ? 'Hide password' : 'Show password');
+            button.setAttribute('title', isVisible ? 'Hide password' : 'Show password');
+        });
+    });
 
     document.querySelectorAll('[data-live-validation]').forEach((form) => {
         const fields = [...form.querySelectorAll('input, select, textarea')];
@@ -299,7 +303,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const status = card.querySelector('[data-weather-status]');
         const details = card.querySelector('[data-weather-details]');
         if (!latitude || !longitude) {
-            if (status) status.textContent = 'Add a map location to see local weather here.';
             return;
         }
 
