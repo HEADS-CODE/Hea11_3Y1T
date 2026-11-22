@@ -10,13 +10,7 @@
     </head>
     <body class="tasks-page">
         <div class="page-shell">
-            <header class="topbar">
-                <a class="brand" href="{{ route('tasks.index') }}" aria-label="Taskflow home">
-                    <span class="brand-mark"><span></span><span></span><span></span></span>
-                    <span>taskflow</span>
-                </a>
-                <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" title="Switch to dark mode"><span class="theme-toggle-icon" data-theme-icon aria-hidden="true">☾</span><span data-theme-label>Dark mode</span></button>
-            </header>
+            @include('layouts._topbar')
 
             <main class="content-wrap">
                 <section class="hero-section">
@@ -33,13 +27,7 @@
                     </div>
                 </section>
 
-                @if (session('success'))
-                    <div class="alert alert-success" role="status">
-                        <span class="alert-icon">✓</span>
-                        <span>{{ session('success') }}</span>
-                        <button type="button" class="alert-close" aria-label="Dismiss message">×</button>
-                    </div>
-                @endif
+                @include('layouts._toasts')
 
                 <section class="overview-grid" aria-label="Task overview">
                     <div class="stat-card stat-card-featured">
@@ -62,7 +50,7 @@
                     </div>
                 </section>
 
-                <section class="workspace-grid">
+                <section id="task-section" class="workspace-grid">
                     <div class="panel create-panel">
                         <div class="panel-heading">
                             <div>
@@ -85,7 +73,6 @@
                                     placeholder="e.g. Finish the project presentation"
                                     maxlength="255"
                                     required
-                                    autofocus
                                 >
                                 @error('task_title')
                                     <span class="field-error">{{ $message }}</span>
@@ -115,10 +102,11 @@
                                 <span class="section-kicker">Your workspace</span>
                                 <h2>Saved tasks <span class="count-badge">{{ $tasks->count() }}</span></h2>
                             </div>
-                            <div class="filter-tabs" role="tablist" aria-label="Filter tasks">
+                            <div class="filter-tabs" role="tablist" aria-label="Task views">
                                 <button class="filter-tab is-active" type="button" data-filter="all" role="tab" aria-selected="true">All</button>
                                 <button class="filter-tab" type="button" data-filter="active" role="tab" aria-selected="false">Active</button>
                                 <button class="filter-tab" type="button" data-filter="completed" role="tab" aria-selected="false">Done</button>
+                                <button class="filter-tab" type="button" data-insight-tab="insights" role="tab" aria-selected="false">Insights</button>
                             </div>
                         </div>
 
@@ -126,7 +114,7 @@
                             <div class="task-list" data-task-list>
                                 @foreach ($tasks as $task)
                                     <article class="task-item {{ $task->completed ? 'is-completed' : '' }}" data-task-item data-status="{{ $task->completed ? 'completed' : 'active' }}">
-                                        <span class="task-status-mark" aria-hidden="true">{{ $task->completed ? '✓' : '' }}</span>
+                                        <form method="POST" action="{{ route('tasks.complete', $task) }}" class="task-status-form">@csrf @method('PATCH')<button class="task-status-mark" type="submit" aria-label="{{ $task->completed ? 'Mark task active' : 'Mark task complete' }}" aria-pressed="{{ $task->completed ? 'true' : 'false' }}">{{ $task->completed ? '✓' : '' }}</button></form>
                                         <div class="task-content">
                                             <div class="task-title-row">
                                                 <h3>{{ $task->task_title }}</h3>
@@ -135,6 +123,7 @@
                                             <p>{{ $task->description ?: 'No description added yet.' }}</p>
                                             <span class="task-date">Added {{ $task->created_at->format('M d, Y') }}</span>
                                         </div>
+                                        <form method="POST" action="{{ route('tasks.destroy', $task) }}" class="task-delete-form" data-confirm="Remove this task?">@csrf @method('DELETE')<button class="task-delete-button" type="submit" title="Remove task" aria-label="Remove {{ $task->task_title }}">×</button></form>
                                     </article>
                                 @endforeach
                             </div>
@@ -149,6 +138,7 @@
                                 <p>Add your first task and start turning intention into progress.</p>
                             </div>
                         @endif
+                        <section class="insight-panel" data-insight-panel hidden aria-label="Task insights"><div class="insights-toolbar"><div><span class="section-kicker">A clearer picture</span><h2>Insights</h2></div><div class="insight-switch"><button type="button" class="is-active" data-insight-mode="cards">Cards</button><button type="button" data-insight-mode="charts">Charts</button></div></div><div class="insight-cards" data-insight-cards><div class="insight-card"><span class="stat-label">Total tasks</span><strong>{{ $tasks->count() }}</strong></div><div class="insight-card"><span class="stat-label">To do</span><strong>{{ $tasks->where('completed', false)->count() }}</strong></div><div class="insight-card"><span class="stat-label">Completed</span><strong>{{ $tasks->where('completed', true)->count() }}</strong></div></div><div class="insight-charts" data-insight-charts hidden><div class="insight-chart-card"><h3>Status</h3><svg class="status-donut" viewBox="0 0 42 42" role="img" aria-label="Task status chart"><circle class="donut-track" cx="21" cy="21" r="15.9155"></circle><circle class="donut-done" cx="21" cy="21" r="15.9155" pathLength="100" stroke-dasharray="{{ $tasks->count() ? round(($tasks->where('completed', true)->count() / $tasks->count()) * 100, 1) : 0 }} {{ $tasks->count() ? round(($tasks->where('completed', false)->count() / $tasks->count()) * 100, 1) : 100 }}"></circle></svg><span>{{ $tasks->where('completed', true)->count() }} done · {{ $tasks->where('completed', false)->count() }} active</span></div><div class="insight-chart-card"><h3>Created in the last 7 days</h3><div class="bar-chart">@foreach($taskByDay as $day => $count)<div class="bar-column"><span class="bar-value">{{ $count }}</span><div class="bar" style="height: {{ $count ? min(100, 20 + ($count * 20)) : 4 }}%"></div><small>{{ $day }}</small></div>@endforeach</div></div><div class="insight-chart-card"><h3>Completed in the last 14 days</h3><div class="line-chart" aria-label="Completed tasks by day">@foreach($completedByDay as $day => $count)<span class="line-point" style="bottom: {{ $count ? min(92, 20 + ($count * 20)) : 8 }}%" title="{{ $day }}: {{ $count }}"></span>@endforeach</div><div class="line-labels">@foreach($completedByDay as $day => $count)<small>{{ $day }}</small>@endforeach</div></div></div></section>
                     </div>
                 </section>
 

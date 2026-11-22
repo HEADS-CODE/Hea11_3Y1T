@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Member;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -41,5 +42,34 @@ class UserFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
         ]);
+    }
+
+    public function member(?Member $member = null): static
+    {
+        return $this->afterMaking(function (User $user) use ($member): void {
+            $user->forceFill([
+                'role' => User::ROLE_MEMBER,
+                'status' => User::STATUS_ACTIVE,
+                'member_id' => $member?->id,
+            ]);
+        });
+    }
+
+    public function admin(): static
+    {
+        return $this->afterMaking(function (User $user): void {
+            $user->forceFill([
+                'role' => User::ROLE_ADMIN,
+                'status' => User::STATUS_ACTIVE,
+                'member_id' => null,
+            ]);
+        });
+    }
+
+    public function pending(): static
+    {
+        return $this->afterMaking(function (User $user): void {
+            $user->forceFill(['status' => User::STATUS_PENDING]);
+        });
     }
 }

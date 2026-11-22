@@ -1,0 +1,1 @@
+@if ($errors->any())<div class="validation-summary" role="alert" tabindex="-1"><strong>Please correct the following fields:</strong><ul>@foreach($errors->keys() as $key)<li><a href="#{{ $key }}">{{ $errors->first($key) }}</a></li>@endforeach</ul></div>@endif

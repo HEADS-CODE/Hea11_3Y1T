@@ -38,6 +38,15 @@ return [
             'report' => false,
         ],
 
+        'member_private' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/member-documents'),
+            'visibility' => 'private',
+            'serve' => false,
+            'throw' => false,
+            'report' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
