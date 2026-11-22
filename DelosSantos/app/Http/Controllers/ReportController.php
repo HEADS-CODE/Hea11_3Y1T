@@ -98,9 +98,9 @@ class ReportController extends Controller
 
         $rows = $query->get()->map(fn (MembershipTransaction $transaction): array => [
             'reference' => $transaction->reference_number,
-            'member' => $transaction->member?->full_name ?? '—',
+            'member' => $transaction->member_display_name,
             'type' => ucwords(str_replace('_', ' ', $transaction->type)),
-            'level' => $transaction->level?->name ?? '—',
+            'level' => $transaction->level_display_name,
             'amount' => '₱'.number_format((float) $transaction->amount, 2),
             'status' => ucfirst($transaction->effectiveStatus()),
             'created' => $transaction->created_at?->format('M d, Y') ?? '—',
@@ -135,10 +135,14 @@ class ReportController extends Controller
             $search = trim($filters['search']);
             $query->where(function ($subquery) use ($search): void {
                 $subquery->where('payment_reference', 'like', "%{$search}%")
-                    ->orWhereHas('transaction.member', function ($memberQuery) use ($search): void {
-                        $memberQuery->where('first_name', 'like', "%{$search}%")
-                            ->orWhere('last_name', 'like', "%{$search}%")
-                            ->orWhere('membership_number', 'like', "%{$search}%");
+                    ->orWhereHas('transaction', function ($transactionQuery) use ($search): void {
+                        $transactionQuery->where('member_name_snapshot', 'like', "%{$search}%")
+                            ->orWhere('membership_number_snapshot', 'like', "%{$search}%")
+                            ->orWhereHas('member', function ($memberQuery) use ($search): void {
+                                $memberQuery->where('first_name', 'like', "%{$search}%")
+                                    ->orWhere('last_name', 'like', "%{$search}%")
+                                    ->orWhere('membership_number', 'like', "%{$search}%");
+                            });
                     });
             });
         }
@@ -152,7 +156,7 @@ class ReportController extends Controller
         $rows = $query->get()->map(fn (Payment $payment): array => [
             'payment_reference' => $payment->payment_reference,
             'transaction' => $payment->transaction?->reference_number ?? '—',
-            'member' => $payment->transaction?->member?->full_name ?? '—',
+            'member' => $payment->transaction?->member_display_name ?? '—',
             'amount' => '₱'.number_format((float) $payment->amount, 2),
             'method' => ucwords(str_replace('_', ' ', $payment->payment_method)),
             'status' => ucfirst((string) $payment->status),
@@ -202,9 +206,9 @@ class ReportController extends Controller
         }
 
         $rows = $query->get()->map(fn (MembershipTransaction $transaction): array => [
-            'member' => $transaction->member?->full_name ?? '—',
-            'membership_number' => $transaction->member?->membership_number ?? '—',
-            'level' => $transaction->level?->name ?? '—',
+            'member' => $transaction->member_display_name,
+            'membership_number' => $transaction->membership_number_display,
+            'level' => $transaction->level_display_name,
             'ends_at' => $transaction->ends_at?->format('M d, Y') ?? '—',
             'days_left' => $transaction->ends_at ? (string) max(0, today()->diffInDays($transaction->ends_at, false)) : '—',
             'reference' => $transaction->reference_number,
@@ -263,10 +267,14 @@ class ReportController extends Controller
         $this->applyDateFilters($query, $filters, 'created_at');
         if (! empty($filters['search'])) {
             $search = trim($filters['search']);
-            $query->whereHas('member', function ($memberQuery) use ($search): void {
-                $memberQuery->where('first_name', 'like', "%{$search}%")
-                    ->orWhere('last_name', 'like', "%{$search}%")
-                    ->orWhere('membership_number', 'like', "%{$search}%");
+            $query->where(function ($transactionQuery) use ($search): void {
+                $transactionQuery->where('member_name_snapshot', 'like', "%{$search}%")
+                    ->orWhere('membership_number_snapshot', 'like', "%{$search}%")
+                    ->orWhereHas('member', function ($memberQuery) use ($search): void {
+                        $memberQuery->where('first_name', 'like', "%{$search}%")
+                            ->orWhere('last_name', 'like', "%{$search}%")
+                            ->orWhere('membership_number', 'like', "%{$search}%");
+                    });
             });
         }
     }

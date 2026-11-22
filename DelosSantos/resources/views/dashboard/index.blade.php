@@ -13,7 +13,7 @@
     @if ($recentTransactions->isNotEmpty())
     <div class="table-scroll"><table class="members-table"><thead><tr><th>Reference</th><th>Member</th><th>Type</th><th>Amount</th><th>Status</th><th>Created</th></tr></thead><tbody>
         @foreach ($recentTransactions as $transaction)
-        <tr><td><span class="membership-number">{{ $transaction->reference_number }}</span></td><td><span class="member-name">{{ $transaction->member->full_name }}</span><span class="member-email">{{ $transaction->member->email }}</span></td><td>{{ ucwords(str_replace('_', ' ', $transaction->type)) }}</td><td>₱{{ number_format((float) $transaction->amount, 2) }}</td><td><span class="status-badge status-{{ $transaction->effectiveStatus() }}">{{ ucfirst($transaction->effectiveStatus()) }}</span></td><td>{{ $transaction->created_at->format('M d, Y') }}</td></tr>
+        <tr><td><span class="membership-number">{{ $transaction->reference_number }}</span></td><td><span class="member-name">{{ $transaction->member_display_name }}</span><span class="member-email">{{ $transaction->member?->email ?? 'Historical transaction' }}</span></td><td>{{ ucwords(str_replace('_', ' ', $transaction->type)) }}</td><td>₱{{ number_format((float) $transaction->amount, 2) }}</td><td><span class="status-badge status-{{ $transaction->effectiveStatus() }}">{{ ucfirst($transaction->effectiveStatus()) }}</span></td><td>{{ $transaction->created_at->format('M d, Y') }}</td></tr>
         @endforeach
     </tbody></table></div>
     @else

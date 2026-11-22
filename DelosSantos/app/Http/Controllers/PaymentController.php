@@ -46,12 +46,14 @@ class PaymentController extends Controller
     {
         $transaction->load(['member', 'level']);
 
+        abort_unless($transaction->member, 404);
         abort_unless($transaction->payment_channel === MembershipTransaction::CHANNEL_FRONT_DESK || $transaction->payment, 422);
         return view('transactions.pay-v2', compact('transaction'));
     }
 
     public function adminRecord(MembershipTransaction $transaction, MembershipTransactionService $service): RedirectResponse
     {
+        abort_unless($transaction->member, 404);
         abort_unless($transaction->payment_channel === MembershipTransaction::CHANNEL_FRONT_DESK, 422, 'Only front-desk transactions can receive cash payment here.');
         $payment = $service->recordFullPayment($transaction, MembershipTransaction::CHANNEL_FRONT_DESK, auth()->id());
         AuditLog::record('payment.recorded', ['reference' => $payment->payment_reference, 'method' => $payment->payment_method], $payment, auth()->user());

@@ -17,6 +17,10 @@ class MembershipTransactionService
 
         return MembershipTransaction::create([
             'member_id' => $member->id,
+            'member_name_snapshot' => $member->full_name,
+            'membership_number_snapshot' => $member->membership_number,
+            'category_name_snapshot' => $attributes['category']->name,
+            'level_name_snapshot' => $level->name,
             'membership_category_id' => $attributes['category']->id,
             'membership_level_id' => $level->id,
             'reference_number' => $this->reference('TXN'),

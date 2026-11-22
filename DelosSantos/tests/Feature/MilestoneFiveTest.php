@@ -4,12 +4,15 @@ use App\Models\Member;
 use App\Models\MembershipCategory;
 use App\Models\MembershipLevel;
 use App\Models\MembershipTransaction;
+use App\Models\MemberDocument;
+use App\Models\MemberRequest;
 use App\Models\Payment;
 use App\Models\User;
 use App\Services\MembershipTransactionService;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 uses(RefreshDatabase::class);
@@ -108,14 +111,49 @@ test('member registration generates distinct seven-character membership numbers 
         ->and($numbers[0])->not->toBe($numbers[1]);
 });
 
-test('a member with transaction history is archived instead of hard deleted', function () {
-    [$member, $category, $level, $admin] = makeMilestoneFiveTransaction('archived-member@example.test');
+test('permanently deleting a member preserves immutable transaction history for administrators', function () {
+    Storage::fake('member_private');
+    [$member, $category, $level, $admin] = makeMilestoneFiveTransaction('deleted-member@example.test');
+    $memberUser = User::factory()->member($member)->create(['email' => $member->email]);
     $transaction = app(MembershipTransactionService::class)->create(compact('member', 'category', 'level') + ['type' => MembershipTransaction::TYPE_APPLICATION]);
+    $payment = app(MembershipTransactionService::class)->recordFullPayment($transaction, MembershipTransaction::CHANNEL_CARD, $admin->id);
+    $memberRequest = $member->requests()->create([
+        'submitted_by_user_id' => $memberUser->id,
+        'request_type' => MemberRequest::TYPE_PROFILE_CHANGE,
+        'source' => MemberRequest::SOURCE_ONLINE,
+        'status' => MemberRequest::STATUS_PENDING,
+        'previous_values' => ['first_name' => $member->first_name],
+        'proposed_values' => ['first_name' => 'Changed'],
+        'consent_at' => now(),
+    ]);
+    Storage::disk('member_private')->put('member-test.txt', 'private');
+    MemberDocument::create([
+        'member_request_id' => $memberRequest->id,
+        'member_id' => $member->id,
+        'uploaded_by_user_id' => $memberUser->id,
+        'document_type' => 'profile_support',
+        'original_name' => 'member-test.txt',
+        'storage_path' => 'member-test.txt',
+        'mime_type' => 'text/plain',
+        'extension' => 'txt',
+        'size_bytes' => 7,
+        'privacy_consented_at' => now(),
+    ]);
 
-    $this->actingAs($admin)->delete(route('members.destroy', $member))->assertRedirect(route('members.index'));
+    $this->actingAs($admin)->delete(route('members.destroy', $member), [
+        'confirm_name' => $member->full_name,
+    ])->assertRedirect(route('members.index'));
 
-    expect(Member::find($member->id))->not->toBeNull()
-        ->and(Member::find($member->id)->status)->toBe('inactive')
-        ->and(Member::find($member->id)->archived_at)->not->toBeNull();
+    $preserved = $transaction->fresh();
+    expect(Member::find($member->id))->toBeNull()
+        ->and(User::find($memberUser->id))->toBeNull()
+        ->and($preserved)->not->toBeNull()
+        ->and($preserved->member_id)->toBeNull()
+        ->and($preserved->member_name_snapshot)->toBe('Transaction Member')
+        ->and($preserved->membership_number_snapshot)->toBe('1712345')
+        ->and($preserved->level_name_snapshot)->toBe('Transaction Gold')
+        ->and(Payment::find($payment->id))->not->toBeNull()
+        ->and(MemberRequest::find($memberRequest->id))->toBeNull()
+        ->and(Storage::disk('member_private')->exists('member-test.txt'))->toBeFalse();
 });
 

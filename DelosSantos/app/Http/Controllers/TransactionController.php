@@ -113,6 +113,8 @@ class TransactionController extends Controller
 
     public function approve(MembershipTransaction $transaction): RedirectResponse
     {
+        abort_unless($transaction->member, 404);
+
         try {
             DB::transaction(function () use ($transaction): void {
                 app(MembershipTransactionService::class)->approve($transaction, auth()->id());
@@ -141,6 +143,8 @@ class TransactionController extends Controller
 
     public function cancel(Request $request, MembershipTransaction $transaction): RedirectResponse
     {
+        abort_unless($transaction->member, 404);
+
         if (in_array($transaction->effectiveStatus(), [MembershipTransaction::STATUS_APPROVED, 'expired'], true)) {
             return back()->with('error', 'Approved transactions cannot be cancelled from this screen.');
         }

@@ -112,3 +112,17 @@
 - The Vite build keeps the absolute `/assets/backgrounds/auth-background.svg` URL unresolved at build time by design; it is served correctly at runtime and returned HTTP 200 locally.
 - The supplied logo ZIP did not contain the three separately named favicon files referenced in its prompt. The shared head component uses the supplied light-mode 512 PNG as the favicon and Apple touch icon fallback; no invented logo asset was added.
 - A second live responsive browser tab could not be opened by the local browser-preview helper before timeout. The current login page rendered in the live browser accessibility tree, and HTTP plus automated feature checks passed. Final visual checks at 390px should still be performed manually in Edge before presentation.
+
+## Permanent member deletion with immutable transaction history
+
+- Created additive migration `2026_11_23_000001_add_transaction_history_snapshots.php`. Existing transactions receive member name, membership number, category, and level snapshots; new transactions capture these values at creation time.
+- Changed the transaction member foreign key to allow the member profile to be deleted while retaining transaction and payment rows. The deleted profile is represented in administrator history by its immutable snapshot rather than a live member relationship.
+- Permanent member deletion now removes the member profile, member login, member-owned tasks, notifications, change requests, and private document files. Append-only audit logs, transactions, payments, references, amounts, and receipts remain preserved for administrators.
+- Prevented approval, cancellation, and payment recording for transactions whose member profile has already been deleted. Administrator reports, dashboard activity, transaction register, and receipts fall back to the stored historical snapshots.
+- Baseline was pushed before this change as commit `111cb47`; the live local database has not been migrated.
+- Verification: 30 tests passed with 150 assertions; route list generated successfully; `php artisan migrate:status` shows only the new snapshot migration pending; `npm run build` passed.
+
+## Fix at the end
+
+- Before running the pending migration on the local MySQL database, make a fresh phpMyAdmin Custom export of `tw31_tasks` containing structure and data.
+- Manually test permanent deletion with a member who has an approved transaction, payment, task, change request, and private document: confirm only the non-financial records disappear, while the administrator transaction register, receipt, report, and audit entry remain available.

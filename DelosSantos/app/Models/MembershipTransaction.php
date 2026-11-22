@@ -29,7 +29,8 @@ class MembershipTransaction extends Model
     ];
 
     protected $fillable = [
-        'member_id', 'membership_category_id', 'membership_level_id', 'reference_number', 'type', 'status', 'payment_channel', 'amount',
+        'member_id', 'member_name_snapshot', 'membership_number_snapshot', 'category_name_snapshot', 'level_name_snapshot',
+        'membership_category_id', 'membership_level_id', 'reference_number', 'type', 'status', 'payment_channel', 'amount',
         'starts_at', 'ends_at', 'created_by_user_id', 'approved_by_user_id', 'approved_at', 'notes', 'cancel_reason',
     ];
 
@@ -44,6 +45,34 @@ class MembershipTransaction extends Model
     public function payment(): HasOne { return $this->hasOne(Payment::class); }
     public function createdBy(): BelongsTo { return $this->belongsTo(User::class, 'created_by_user_id'); }
     public function approvedBy(): BelongsTo { return $this->belongsTo(User::class, 'approved_by_user_id'); }
+
+    public function getMemberDisplayNameAttribute(): string
+    {
+        return $this->member?->full_name
+            ?? $this->member_name_snapshot
+            ?? 'Deleted member';
+    }
+
+    public function getMembershipNumberDisplayAttribute(): string
+    {
+        return $this->member?->membership_number
+            ?? $this->membership_number_snapshot
+            ?? '—';
+    }
+
+    public function getCategoryDisplayNameAttribute(): string
+    {
+        return $this->category?->name
+            ?? $this->category_name_snapshot
+            ?? '—';
+    }
+
+    public function getLevelDisplayNameAttribute(): string
+    {
+        return $this->level?->name
+            ?? $this->level_name_snapshot
+            ?? '—';
+    }
 
     public function effectiveStatus(): string
     {

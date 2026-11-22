@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class MemberController extends Controller
 {
@@ -134,29 +135,36 @@ class MemberController extends Controller
 
     public function destroy(Member $member): RedirectResponse
     {
-        if ($member->transactions()->exists()) {
-            DB::transaction(function () use ($member): void {
-                $member->update(['status' => 'inactive', 'archived_at' => now()]);
-                $member->user?->forceFill(['status' => User::STATUS_DISABLED])->save();
-                AuditLog::record('member.archived', ['member_id' => $member->id, 'reason' => 'delete_requested_with_transaction_history'], $member, auth()->user());
-            });
-
-            return redirect()->route('members.index')->with('success', 'This member has transaction history, so the delete request archived the member instead of removing the record.');
-        }
-
         if (trim((string) request()->input('confirm_name')) !== $member->full_name) {
             return back()->withErrors(['confirm_name' => 'Type the member’s full name exactly to confirm permanent deletion.']);
         }
 
         DB::transaction(function () use ($member): void {
-            AuditLog::record('member.deleted', ['member_id' => $member->id, 'membership_number' => $member->membership_number], $member, auth()->user());
+            $transactions = $member->transactions()->get();
+            $documents = $member->documents()->get();
+            $user = $member->user;
+
+            AuditLog::record('member.deleted', [
+                'member_id' => $member->id,
+                'membership_number' => $member->membership_number,
+                'transaction_count_preserved' => $transactions->count(),
+                'document_count_removed' => $documents->count(),
+            ], $member, auth()->user());
+
+            foreach ($documents as $document) {
+                Storage::disk('member_private')->delete($document->storage_path);
+            }
+
+            // Financial history is retained, but no longer points to the deleted profile.
+            $member->transactions()->update(['member_id' => null]);
+            $member->requests()->delete();
             $member->tasks()->delete();
-            $member->transactions()->whereIn('status', ['pending', 'cancelled'])->delete();
-            $member->user?->delete();
+            $user?->notifications()->delete();
+            $user?->delete();
             $member->delete();
         });
 
-        return redirect()->route('members.index')->with('success', 'Member and its non-financial records were permanently deleted.');
+        return redirect()->route('members.index')->with('success', 'Member profile and login were permanently deleted. Financial transaction history and payments were preserved for administrators.');
     }
 
     public function archive(Member $member): RedirectResponse
