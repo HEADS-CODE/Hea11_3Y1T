@@ -3,7 +3,7 @@
 @section('content')
 <div class="page-intro report-intro">
     <div><span class="eyebrow">Administrator workspace</span><h1>System <em>reports.</em></h1><p>Turn the membership record into a clear, printable view for review and follow-up.</p></div>
-    <a class="button button-primary" href="{{ route('admin.reports.export', request()->query()) }}">Export CSV <span>↗</span></a>
+    <div class="intro-actions no-print"><button class="button button-ghost" type="button" onclick="window.print()">Print Report</button><a class="button button-primary" href="{{ route('admin.reports.export', request()->query()) }}">Export CSV <span>↗</span></a></div>
 </div>
 
 <section class="panel report-panel">
@@ -18,6 +18,8 @@
         <div class="report-filter-actions"><button class="button button-dark" type="submit">Apply filters</button><a class="button button-ghost" href="{{ route('admin.reports.index') }}">Clear</a></div>
     </form>
 </section>
+
+<div class="print-report-header"><h2>Puihaha {{ $title }}</h2><p>Generated {{ now()->format('M d, Y h:i A') }}</p><p>Filters: {{ collect(['Report' => ucfirst($type), 'Search' => $filters['search'] ?? null, 'Status' => $filters['status'] ?? null, 'Category' => optional($categories->firstWhere('id', $filters['category_id'] ?? null))->name, 'Level' => optional($levels->firstWhere('id', $filters['level_id'] ?? null))->name, 'From' => $filters['from'] ?? null, 'To' => $filters['to'] ?? null])->filter()->map(fn ($value, $key) => $key.': '.$value)->implode(' · ') ?: 'None' }}</p></div>
 
 <section class="panel table-panel report-results">
     <div class="panel-heading"><div><span class="eyebrow">{{ $type === 'expiring' ? 'Renewal watch' : 'Generated view' }}</span><h2>{{ $title }}</h2><p class="panel-intro">{{ $description }}</p></div><span class="report-count">{{ count($rows) }} result{{ count($rows) === 1 ? '' : 's' }}</span></div>

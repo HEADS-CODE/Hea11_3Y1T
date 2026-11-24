@@ -29,7 +29,7 @@ class MembershipTransaction extends Model
     ];
 
     protected $fillable = [
-        'member_id', 'member_name_snapshot', 'membership_number_snapshot', 'category_name_snapshot', 'level_name_snapshot',
+        'member_id', 'member_name_snapshot', 'member_email_snapshot', 'membership_number_snapshot', 'category_name_snapshot', 'level_name_snapshot',
         'membership_category_id', 'membership_level_id', 'reference_number', 'type', 'status', 'payment_channel', 'amount',
         'starts_at', 'ends_at', 'created_by_user_id', 'approved_by_user_id', 'approved_at', 'notes', 'cancel_reason',
     ];

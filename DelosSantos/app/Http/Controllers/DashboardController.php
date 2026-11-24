@@ -20,9 +20,13 @@ class DashboardController extends Controller
         ];
         $recentTransactions = MembershipTransaction::with(['member', 'level', 'payment'])->latest()->limit(8)->get();
         $recentActivity = AuditLog::with('user')->latest()->limit(10)->get();
+        $adminProfile = auth()->user()->adminProfile;
+        $hasSavedLocation = is_numeric($adminProfile?->latitude) && is_numeric($adminProfile?->longitude);
         $weatherLocation = [
-            'latitude' => config('membership.weather.default_latitude'),
-            'longitude' => config('membership.weather.default_longitude'),
+            'latitude' => $hasSavedLocation ? $adminProfile->latitude : config('membership.weather.default_latitude'),
+            'longitude' => $hasSavedLocation ? $adminProfile->longitude : config('membership.weather.default_longitude'),
+            'label' => $hasSavedLocation ? 'Your saved office location' : 'Configured office location',
+            'uses_default' => ! $hasSavedLocation,
         ];
 
         return view('dashboard.index', compact('stats', 'recentTransactions', 'recentActivity', 'weatherLocation'));

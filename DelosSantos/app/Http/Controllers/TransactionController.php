@@ -69,14 +69,16 @@ class TransactionController extends Controller
         return redirect()->route('member.payment', $transaction);
     }
 
-    public function showLevelChange(): View
+    public function showLevelChange(Request $request): View
     {
         $member = auth()->user()->member;
         abort_unless($member, 404);
         $member->load(['category', 'level']);
         $levels = \App\Models\MembershipLevel::where('is_active', true)->orderBy('fee')->get();
+        $selectedLevelId = $request->integer('level') ?: (int) old('membership_level_id');
+        $selectedLevel = $levels->firstWhere('id', $selectedLevelId);
 
-        return view('transactions.request', compact('member', 'levels') + ['mode' => 'level_change']);
+        return view('transactions.request', compact('member', 'levels', 'selectedLevelId', 'selectedLevel') + ['mode' => 'level_change']);
     }
 
     public function levelChange(Request $request, MembershipTransactionService $service): RedirectResponse
@@ -165,7 +167,7 @@ class TransactionController extends Controller
     {
         abort_unless(auth()->user()->isAdmin() || auth()->user()->member_id === $transaction->member_id, 403);
         $transaction->load(['member', 'category', 'level', 'payment']);
-        abort_unless($transaction->payment, 404);
+        abort_unless($transaction->payment && $transaction->payment->status === 'paid', 404);
 
         return view('transactions.receipt', compact('transaction'));
     }

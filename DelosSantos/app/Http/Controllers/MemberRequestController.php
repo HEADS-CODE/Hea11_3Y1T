@@ -6,6 +6,9 @@ use App\Models\AuditLog;
 use App\Models\MemberRequest;
 use App\Models\MembershipCategory;
 use App\Models\User;
+use App\Http\Requests\StoreCategoryChangeRequest;
+use App\Http\Requests\StoreProfileChangeRequest;
+use App\Http\Requests\StoreReactivationRequest;
 use App\Notifications\EmailChangeVerificationNotification;
 use App\Notifications\PortalNotification;
 use Illuminate\Http\RedirectResponse;
@@ -16,44 +19,52 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class MemberRequestController extends Controller
 {
     public function index(): View
     {
-        $requests = auth()->user()->member?->requests()->latest()->get() ?? collect();
+        $member = auth()->user()->member;
+        $requests = $member?->requests()->with('documents')->latest()->get() ?? collect();
+        $extensionRequests = $member?->tasks()
+            ->with(['extensionRequests' => fn ($query) => $query->latest()])
+            ->get()
+            ->flatMap(fn ($task) => $task->extensionRequests->map(fn ($extension) => [
+                'kind' => 'task_extension',
+                'label' => 'Task extension',
+                'subject' => $task->task_title,
+                'source' => 'online',
+                'status' => $extension->status,
+                'submitted_at' => $extension->created_at,
+                'note' => $extension->decision_note,
+                'documents' => collect(),
+            ]))
+            ->sortByDesc('submitted_at')
+            ->values() ?? collect();
 
-        return view('member-requests.index', compact('requests'));
+        return view('member-requests.index', compact('requests', 'extensionRequests'));
     }
 
-    public function categoryChange(): View
+    public function categoryChange(Request $request): View
     {
         $member = auth()->user()->member;
         abort_unless($member, 404);
+
+        $selectedCategoryId = $request->integer('category') ?: (int) old('membership_category_id');
 
         return view('member-requests.category-change', [
             'member' => $member->load('category'),
             'categories' => MembershipCategory::where('is_active', true)->whereKeyNot($member->membership_category_id)->orderBy('name')->get(),
+            'selectedCategoryId' => $selectedCategoryId,
         ]);
     }
 
-    public function storeCategoryChange(Request $request): RedirectResponse
+    public function storeCategoryChange(StoreCategoryChangeRequest $request): RedirectResponse
     {
         $member = auth()->user()->member;
         abort_unless($member, 404);
-        $validated = $request->validate([
-            'membership_category_id' => ['required', Rule::exists('membership_categories', 'id')->where(fn ($query) => $query->where('is_active', true))],
-            'privacy_consent' => ['accepted'],
-            'documents' => ['required', 'array', 'min:1'],
-            'documents.*' => $this->documentRules(),
-        ]);
-
-        if ((int) $validated['membership_category_id'] === (int) $member->membership_category_id) {
-            throw ValidationException::withMessages(['membership_category_id' => 'Please choose a different category for a category-change request.']);
-        }
+        $validated = $request->validated();
 
         $memberRequest = $this->createRequest($member, MemberRequest::TYPE_CATEGORY_CHANGE, [
             'membership_category_id' => (int) $validated['membership_category_id'],
@@ -72,42 +83,16 @@ class MemberRequestController extends Controller
         return view('member-requests.profile-change', compact('member'));
     }
 
-    public function storeProfileChange(Request $request): RedirectResponse
+    public function storeProfileChange(StoreProfileChangeRequest $request): RedirectResponse
     {
         $member = auth()->user()->member;
         abort_unless($member, 404);
-        $validated = $request->validate([
-            'first_name' => ['required', 'string', 'max:100'],
-            'middle_name' => ['nullable', 'string', 'max:100'],
-            'last_name' => ['required', 'string', 'max:100'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('members', 'email')->ignore($member->id), Rule::unique('users', 'email')->where(fn ($query) => $query->where('role', User::ROLE_MEMBER))->ignore($member->user?->id)],
-            'phone' => ['nullable', 'string', 'max:30'],
-            'birth_date' => ['nullable', 'date', 'before_or_equal:today'],
-            'gender' => ['required', Rule::in(config('membership.genders'))],
-            'unit_floor_building' => ['nullable', 'string', 'max:150'],
-            'house_street' => ['nullable', 'string', 'max:150'],
-            'barangay' => ['nullable', 'string', 'max:100'],
-            'city_municipality' => ['nullable', 'string', 'max:100'],
-            'province' => ['nullable', 'string', 'max:100'],
-            'zip_code' => ['nullable', 'digits:4'],
-            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
-            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
-            'privacy_consent' => ['nullable'],
-            'documents' => ['nullable', 'array'],
-            'documents.*' => $this->documentRules(),
-        ]);
+        $validated = $request->validated();
 
         $proposed = collect($validated)->except(['privacy_consent', 'documents'])->map(fn ($value) => $value === '' ? null : $value)->all();
         $previous = collect(array_keys($proposed))->mapWithKeys(fn ($field) => [$field => $member->{$field}])->all();
         $identityChanged = collect(['first_name', 'middle_name', 'last_name', 'birth_date'])->contains(fn ($field) => (string) ($previous[$field] ?? '') !== (string) ($proposed[$field] ?? ''));
         $hasDocuments = count($request->file('documents', [])) > 0;
-
-        if ($identityChanged && ! $hasDocuments) {
-            throw ValidationException::withMessages(['documents' => 'A name or birth-date change requires a supporting document.']);
-        }
-        if ($hasDocuments && ! $request->boolean('privacy_consent')) {
-            throw ValidationException::withMessages(['privacy_consent' => 'Please provide privacy consent before uploading documents.']);
-        }
 
         $emailChanged = strtolower((string) $member->email) !== strtolower((string) $proposed['email']);
         $memberRequest = $this->createRequest($member, MemberRequest::TYPE_PROFILE_CHANGE, $proposed, $previous, MemberRequest::SOURCE_ONLINE);
@@ -129,7 +114,7 @@ class MemberRequestController extends Controller
         return redirect()->route('member.transactions')->with('success', $emailChanged ? 'Your request was sent. Verify the new email address before administrator review.' : 'Your profile-change request was sent for review.');
     }
 
-    public function storeReactivation(Request $request): RedirectResponse
+    public function storeReactivation(StoreReactivationRequest $request): RedirectResponse
     {
         $member = auth()->user()->member;
         abort_unless($member && $member->status === 'inactive' && $member->archived_at === null, 403);
@@ -137,11 +122,7 @@ class MemberRequestController extends Controller
             return back()->with('info', 'Your reactivation request is already pending review.');
         }
 
-        $validated = $request->validate([
-            'privacy_consent' => ['accepted'],
-            'documents' => ['required', 'array', 'min:1'],
-            'documents.*' => $this->documentRules(),
-        ]);
+        $validated = $request->validated();
         $memberRequest = $this->createRequest($member, MemberRequest::TYPE_REACTIVATION, [], ['status' => $member->status], MemberRequest::SOURCE_ONLINE);
         $this->storeDocuments($request, $memberRequest, 'reactivation_support');
         $this->notifyAdmins('Reactivation request received', $member->full_name.' submitted a reactivation request.', route('admin.requests.show', $memberRequest));
@@ -174,16 +155,6 @@ class MemberRequestController extends Controller
             'proposed_values' => $proposed,
             'consent_at' => now(),
         ]);
-    }
-
-    private function documentRules(): array
-    {
-        return [
-            'file',
-            'max:'.config('membership.documents.max_kilobytes'),
-            'mimetypes:'.implode(',', config('membership.documents.mimetypes')),
-            'mimes:'.implode(',', config('membership.documents.extensions')),
-        ];
     }
 
     private function storeDocuments(Request $request, MemberRequest $memberRequest, string $documentType): void

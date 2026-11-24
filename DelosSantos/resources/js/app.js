@@ -90,6 +90,35 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+document.addEventListener('DOMContentLoaded', () => {
+    const closeExtensionModal = (modal) => {
+        modal?.setAttribute('hidden', '');
+    };
+
+    document.querySelectorAll('[data-extension-open]').forEach((button) => {
+        button.addEventListener('click', () => {
+            const modal = document.getElementById(button.dataset.extensionOpen);
+            modal?.removeAttribute('hidden');
+            modal?.querySelector('input, textarea, button')?.focus();
+        });
+    });
+
+    document.querySelectorAll('[data-extension-cancel]').forEach((button) => {
+        button.addEventListener('click', () => closeExtensionModal(button.closest('[data-extension-modal]')));
+    });
+
+    document.querySelectorAll('[data-extension-modal]').forEach((modal) => {
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) closeExtensionModal(modal);
+        });
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') return;
+        document.querySelectorAll('[data-extension-modal]:not([hidden])').forEach(closeExtensionModal);
+    });
+});
+
 const puihahaValidationMessage = (field) => {
     const name = field.name;
     const value = field.value.trim();
@@ -127,12 +156,13 @@ window.initPuihahaMaps = () => {
         if (root.dataset.mapReady === 'true' || !window.google?.maps) return;
         root.dataset.mapReady = 'true';
         const geocoder = new google.maps.Geocoder();
-        const canvas = root.querySelector('[data-map-canvas]');
-        const latitude = root.querySelector('#latitude');
-        const longitude = root.querySelector('#longitude');
-        const addressInput = root.querySelector('[data-full-address]');
+        const scope = root.matches('[data-payment-step]') ? root : root.closest('[data-payment-step]') || root;
+        const canvas = root.querySelector('[data-map-canvas]') || scope.querySelector('[data-map-canvas]');
+        const latitude = root.querySelector('#latitude') || scope.querySelector('#latitude');
+        const longitude = root.querySelector('#longitude') || scope.querySelector('#longitude');
+        const addressInput = root.querySelector('[data-full-address]') || scope.querySelector('[data-full-address]');
         const parts = [...root.querySelectorAll('[data-address-part]')];
-        const fallback = root.querySelector('[data-map-fallback]');
+        const fallback = root.querySelector('[data-map-fallback]') || scope.querySelector('[data-map-fallback]');
         let marker;
         let lookups = 0;
         let timer;
@@ -205,9 +235,15 @@ window.initPuihahaMaps = () => {
             setMarker(event.latLng);
             reverseGeocode(event.latLng);
         });
-        root.querySelector('[data-locate-map]')?.addEventListener('click', geocodeTypedAddress);
+        (root.querySelector('[data-locate-map]') || scope.querySelector('[data-locate-map]'))?.addEventListener('click', geocodeTypedAddress);
         parts.forEach((input) => {
-            input.addEventListener('input', () => { updateAddress(); clearTimeout(timer); timer = setTimeout(geocodeTypedAddress, 1000); });
+            input.addEventListener('input', () => {
+                if (latitude) latitude.value = '';
+                if (longitude) longitude.value = '';
+                updateAddress();
+                clearTimeout(timer);
+                timer = setTimeout(geocodeTypedAddress, 1000);
+            });
             input.addEventListener('blur', geocodeTypedAddress);
         });
     });
@@ -240,15 +276,51 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    document.querySelectorAll('[data-profile-toggle]').forEach((button) => button.addEventListener('click', () => {
-        const menu = document.querySelector('[data-profile-menu]');
-        if (!menu) return;
-        const hidden = menu.hasAttribute('hidden');
-        menu.toggleAttribute('hidden', !hidden);
-        button.setAttribute('aria-expanded', String(hidden));
-    }));
+    document.querySelectorAll('[data-level-benefits-select]').forEach((select) => {
+        const card = document.querySelector('[data-selected-level-benefits]');
+        const name = card?.querySelector('[data-selected-level-name]');
+        const fee = card?.querySelector('[data-selected-level-fee]');
+        const validity = card?.querySelector('[data-selected-level-validity]');
+        const benefits = card?.querySelector('[data-selected-level-benefits-text]');
+        const renderSelectedLevel = () => {
+            const option = select.selectedOptions[0];
+            const hasSelection = Boolean(option?.value);
+            card?.toggleAttribute('hidden', !hasSelection);
+            if (!hasSelection) return;
+            if (name) name.textContent = option.dataset.levelName || option.textContent.trim();
+            if (fee) fee.textContent = `₱${option.dataset.levelFee || '0.00'}`;
+            if (validity) validity.textContent = `${option.dataset.levelValidity || '0'} months`;
+            if (benefits) benefits.textContent = option.dataset.levelBenefits || 'Benefits will be confirmed by your administrator.';
+        };
+        select.addEventListener('change', renderSelectedLevel);
+        renderSelectedLevel();
+    });
+
+    const profileButton = document.querySelector('[data-profile-toggle]');
+    const profileMenu = document.querySelector('[data-profile-menu]');
+    const closeProfileMenu = () => {
+        profileMenu?.setAttribute('hidden', '');
+        profileButton?.setAttribute('aria-expanded', 'false');
+    };
+    const closeNotificationPanel = () => {
+        notificationPanel?.setAttribute('hidden', '');
+        notificationButton?.setAttribute('aria-expanded', 'false');
+    };
+    profileButton?.addEventListener('click', () => {
+        const isHidden = profileMenu?.hasAttribute('hidden');
+        closeNotificationPanel();
+        profileMenu?.toggleAttribute('hidden', !isHidden);
+        profileButton.setAttribute('aria-expanded', String(Boolean(isHidden)));
+    });
     document.addEventListener('click', (event) => {
-        if (!event.target.closest('[data-profile-menu], [data-profile-toggle]')) document.querySelectorAll('[data-profile-menu]').forEach((menu) => menu.setAttribute('hidden', ''));
+        if (!event.target.closest('[data-profile-menu], [data-profile-toggle]')) closeProfileMenu();
+        if (!event.target.closest('[data-notification-panel], [data-notification-button]')) closeNotificationPanel();
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            closeProfileMenu();
+            closeNotificationPanel();
+        }
     });
 
     const notificationButton = document.querySelector('[data-notification-button]');
@@ -270,6 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     notificationButton?.addEventListener('click', () => {
         const isHidden = notificationPanel?.hasAttribute('hidden');
+        closeProfileMenu();
         notificationPanel?.toggleAttribute('hidden', !isHidden);
         notificationButton.setAttribute('aria-expanded', String(Boolean(isHidden)));
         if (isHidden) loadNotifications();
@@ -280,7 +353,11 @@ document.addEventListener('DOMContentLoaded', () => {
     notificationList?.addEventListener('click', (event) => {
         const item = event.target.closest('[data-notification-id]');
         if (!item) return;
-        fetch(`/notifications/${item.dataset.notificationId}/read`, { method: 'POST', headers: { 'X-CSRF-TOKEN': csrf, Accept: 'application/json' } }).catch(() => {});
+        event.preventDefault();
+        const destination = item.getAttribute('href') || '/tasks';
+        fetch(`/notifications/${encodeURIComponent(item.dataset.notificationId)}/read`, { method: 'POST', headers: { 'X-CSRF-TOKEN': csrf, Accept: 'application/json' } })
+            .catch(() => {})
+            .finally(() => { window.location.assign(destination); });
     });
     loadNotifications();
     if (notificationPanel) window.setInterval(loadNotifications, 60000);
@@ -306,17 +383,23 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        fetch(`/weather?lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}`, { headers: { Accept: 'application/json' } })
+        const controller = new AbortController();
+        const timeout = window.setTimeout(() => controller.abort(), 10000);
+        fetch(`/weather?lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}`, { headers: { Accept: 'application/json' }, signal: controller.signal })
             .then((response) => response.ok ? response.json() : Promise.reject())
             .then((weather) => {
                 if (status) status.hidden = true;
                 if (details) details.hidden = false;
+                const icon = card.querySelector('[data-weather-icon]');
+                const iconMap = { '01': '☀', '02': '◐', '03': '☁', '04': '☁', '09': '☂', '10': '☂', '11': 'ϟ', '13': '❄', '50': '≋' };
+                if (icon) icon.textContent = iconMap[String(weather.icon || '01').slice(0, 2)] || '☼';
                 card.querySelector('[data-weather-temperature]').textContent = `${weather.temperature}°C`;
                 card.querySelector('[data-weather-place]').textContent = weather.place;
                 card.querySelector('[data-weather-description]').textContent = weather.description;
                 card.querySelector('[data-weather-meta]').textContent = `Humidity ${weather.humidity}% · Wind ${weather.wind_speed} m/s`;
             })
-            .catch(() => { if (status) status.textContent = 'Weather is currently unavailable. Your membership location remains saved.'; });
+            .catch(() => { if (status) { status.hidden = false; status.textContent = 'Weather is currently unavailable. Your saved location remains safe.'; } })
+            .finally(() => window.clearTimeout(timeout));
     });
 
     document.querySelectorAll('[data-insight-tab]').forEach((button) => button.addEventListener('click', () => {
@@ -346,5 +429,184 @@ document.addEventListener('DOMContentLoaded', () => {
         const animate = (now) => { const progress = Math.min(1, (now - started) / duration); const eased = progress < .5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2; window.scrollTo(0, start + ((destination - start) * eased)); if (progress < 1) requestAnimationFrame(animate); };
         requestAnimationFrame(animate);
     }));
+
+    const paymentForm = document.querySelector('[data-payment-checkout]');
+    const paymentMethodStep = paymentForm?.querySelector('[data-payment-step="method"]');
+    const paymentPayerStep = paymentForm?.querySelector('[data-payment-step="payer"]');
+    const showPayerStep = () => {
+        const selectedMethod = paymentForm?.querySelector('input[name="payment_channel"]:checked');
+        if (!selectedMethod) {
+            paymentForm?.querySelector('input[name="payment_channel"]')?.focus();
+            return;
+        }
+        paymentMethodStep?.setAttribute('hidden', '');
+        paymentPayerStep?.removeAttribute('hidden');
+        paymentPayerStep?.querySelector('input, textarea')?.focus();
+    };
+    paymentForm?.querySelector('[data-payment-continue]')?.addEventListener('click', showPayerStep);
+    paymentForm?.querySelector('[data-payment-back]')?.addEventListener('click', () => {
+        paymentPayerStep?.setAttribute('hidden', '');
+        paymentMethodStep?.removeAttribute('hidden');
+        paymentForm?.querySelector('input[name="payment_channel"]:checked')?.focus();
+    });
+    paymentForm?.querySelectorAll('input[name="payment_channel"]').forEach((input) => input.addEventListener('change', () => {
+        document.querySelector('[data-online-note]')?.toggleAttribute('hidden', input.value === 'front_desk');
+        document.querySelector('[data-frontdesk-note]')?.toggleAttribute('hidden', input.value !== 'front_desk');
+    }));
     if (document.body.classList.contains('tasks-page')) window.scrollTo(0, 0);
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+    const workspace = document.querySelector('[data-task-workspace]');
+    const allTaskItems = () => [...document.querySelectorAll('[data-task-item]')];
+
+    const updateSummary = (summary) => {
+        Object.entries({ assigned: summary.assigned, todo: summary.todo, completed: summary.completed }).forEach(([key, value]) => {
+            document.querySelectorAll(`[data-task-summary="${key}"]`).forEach((element) => { element.textContent = value; });
+        });
+        document.querySelectorAll('[data-completion-percent]').forEach((element) => { element.textContent = `${summary.completion_percent}%`; });
+        document.querySelectorAll('[data-completion-count]').forEach((element) => { element.textContent = summary.completed; });
+        document.querySelectorAll('[data-remaining-count]').forEach((element) => { element.textContent = summary.todo; });
+        document.querySelectorAll('[data-overdue-count]').forEach((element) => { element.textContent = summary.overdue; });
+        document.querySelectorAll('[data-overdue-pill]').forEach((element) => { element.hidden = summary.overdue < 1; });
+        document.querySelectorAll('[data-completion-donut] .donut-done').forEach((element) => { element.setAttribute('stroke-dasharray', `${summary.completion_percent} ${100 - summary.completion_percent}`); });
+    };
+
+    const updateCompletionChart = (completedByDay) => {
+        document.querySelectorAll('[data-completion-point]').forEach((point) => {
+            const day = point.dataset.day;
+            const count = Number(completedByDay?.[day] ?? 0);
+            point.style.bottom = `${count ? Math.min(82, 16 + (count * 18)) : 8}%`;
+            point.dataset.tooltip = `${day}: ${count} completed`;
+            point.title = point.dataset.tooltip;
+        });
+    };
+
+    const updateTaskCard = (payload) => {
+        const item = document.querySelector(`[data-task-item][data-task-id="${payload.id}"]`);
+        if (!item) return;
+        item.dataset.taskCompleted = String(payload.completed);
+        item.dataset.taskStatus = payload.filter_status;
+        item.classList.toggle('is-completed', payload.completed);
+        const mark = item.querySelector('.task-status-mark');
+        if (mark) {
+            mark.textContent = payload.completed ? '✓' : '';
+            mark.setAttribute('aria-pressed', String(payload.completed));
+            mark.setAttribute('aria-label', payload.completed ? 'Mark task active' : 'Mark task complete');
+        }
+        const status = item.querySelector('.task-status');
+        if (status) {
+            status.className = `task-status task-status-${payload.status_key}`;
+            status.textContent = payload.status_label;
+        }
+    };
+
+    const matchesFilter = (item) => {
+        if (!workspace) return true;
+        const query = workspace.querySelector('[data-task-search]')?.value.trim().toLowerCase() || '';
+        const priority = workspace.querySelector('[data-task-priority]')?.value || 'all';
+        const status = workspace.querySelector('[data-task-status]')?.value || 'all';
+        const searchable = item.textContent.toLowerCase();
+        return (!query || searchable.includes(query))
+            && (priority === 'all' || item.dataset.taskPriority === priority)
+            && (status === 'all' || item.dataset.taskStatus === status);
+    };
+
+    let currentPage = 1;
+    const applyTaskFilters = () => {
+        const items = allTaskItems();
+        if (!workspace) return;
+        const matching = items.filter(matchesFilter);
+        const pageSize = Number(workspace.dataset.pageSize || 8);
+        const pageCount = Math.max(1, Math.ceil(matching.length / pageSize));
+        currentPage = Math.min(currentPage, pageCount);
+        const start = (currentPage - 1) * pageSize;
+        items.forEach((item) => item.classList.add('is-hidden'));
+        matching.slice(start, start + pageSize).forEach((item) => item.classList.remove('is-hidden'));
+        workspace.querySelector('[data-task-empty]')?.toggleAttribute('hidden', matching.length > 0);
+        const resultCount = workspace.querySelector('[data-task-result-count]');
+        if (resultCount) resultCount.textContent = `${matching.length} task${matching.length === 1 ? '' : 's'}`;
+        const pagination = workspace.querySelector('[data-task-pagination]');
+        if (!pagination) return;
+        pagination.innerHTML = '';
+        if (pageCount <= 1) return;
+        const addButton = (label, page, disabled = false, active = false) => {
+            const button = document.createElement('button');
+            button.type = 'button'; button.textContent = label; button.disabled = disabled; button.classList.toggle('is-active', active); button.setAttribute('aria-label', `Go to task page ${page}`);
+            button.addEventListener('click', () => { currentPage = page; applyTaskFilters(); });
+            pagination.append(button);
+        };
+        addButton('←', Math.max(1, currentPage - 1), currentPage === 1);
+        for (let page = 1; page <= pageCount; page += 1) addButton(String(page), page, false, page === currentPage);
+        addButton('→', Math.min(pageCount, currentPage + 1), currentPage === pageCount);
+    };
+
+    workspace?.querySelectorAll('[data-task-search], [data-task-priority], [data-task-status]').forEach((field) => field.addEventListener(field.matches('input') ? 'input' : 'change', () => { currentPage = 1; applyTaskFilters(); }));
+    workspace?.querySelector('[data-task-filter-clear]')?.addEventListener('click', () => {
+        workspace.querySelector('[data-task-search]').value = '';
+        workspace.querySelector('[data-task-priority]').value = 'all';
+        workspace.querySelector('[data-task-status]').value = 'all';
+        currentPage = 1; applyTaskFilters();
+    });
+
+    document.querySelectorAll('[data-task-completion-form]').forEach((form) => form.addEventListener('submit', async (event) => {
+        if (!window.fetch) return;
+        event.preventDefault();
+        const button = form.querySelector('.task-status-mark');
+        if (button) button.disabled = true;
+        try {
+            const response = await fetch(form.action, { method: 'POST', body: new FormData(form), headers: { 'X-CSRF-TOKEN': csrf, Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!response.ok) throw new Error('Task update failed');
+            const payload = await response.json();
+            updateTaskCard(payload.task);
+            updateSummary(payload.summary);
+            updateCompletionChart(payload.completed_by_day);
+            applyTaskFilters();
+        } catch (error) {
+            HTMLFormElement.prototype.submit.call(form);
+        } finally {
+            if (button) button.disabled = false;
+        }
+    }));
+
+    document.querySelectorAll('[data-dashboard-tab]').forEach((tab) => tab.addEventListener('click', () => {
+        const selected = tab.dataset.dashboardTab;
+        document.querySelectorAll('[data-dashboard-tab]').forEach((item) => {
+            const active = item === tab;
+            item.classList.toggle('is-active', active);
+            item.setAttribute('aria-selected', String(active));
+        });
+        document.querySelectorAll('[data-dashboard-panel]').forEach((panel) => {
+            panel.toggleAttribute('hidden', panel.dataset.dashboardPanel !== selected);
+        });
+    }));
+
+    const closeTransactionModals = () => document.querySelectorAll('[data-cancel-modal], [data-reason-modal]').forEach((modal) => modal.setAttribute('hidden', ''));
+    document.querySelectorAll('[data-cancel-trigger]').forEach((button) => button.addEventListener('click', () => {
+        const modal = document.querySelector('[data-cancel-modal]');
+        const form = modal?.querySelector('[data-cancel-modal-form]');
+        const reason = modal?.querySelector('[name="cancel_reason"]');
+        if (!modal || !form) return;
+        form.action = button.dataset.cancelAction;
+        form.reset();
+        modal.removeAttribute('hidden');
+        window.setTimeout(() => reason?.focus(), 0);
+    }));
+    document.querySelectorAll('[data-reason-trigger]').forEach((button) => button.addEventListener('click', () => {
+        const modal = document.querySelector('[data-reason-modal]');
+        const text = modal?.querySelector('[data-reason-text]');
+        if (!modal || !text) return;
+        text.textContent = button.dataset.reason || 'No reason was recorded.';
+        modal.removeAttribute('hidden');
+    }));
+    document.querySelectorAll('[data-modal-close]').forEach((button) => button.addEventListener('click', closeTransactionModals));
+    document.querySelectorAll('[data-cancel-modal], [data-reason-modal]').forEach((modal) => modal.addEventListener('click', (event) => {
+        if (event.target === modal) closeTransactionModals();
+    }));
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeTransactionModals();
+    });
+
+    applyTaskFilters();
 });

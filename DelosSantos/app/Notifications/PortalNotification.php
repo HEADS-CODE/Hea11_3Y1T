@@ -2,6 +2,8 @@
 
 namespace App\Notifications;
 
+use App\Models\User;
+use App\Services\NotificationDestinationResolver;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
@@ -25,7 +27,9 @@ class PortalNotification extends Notification
         return [
             'title' => $this->title,
             'message' => $this->message,
-            'url' => $this->url,
+            'url' => $notifiable instanceof User
+                ? app(NotificationDestinationResolver::class)->resolve($notifiable, $this->url)
+                : null,
         ];
     }
 }

@@ -17,7 +17,7 @@
             @include('components.validation-summary')
             @yield('content')
         </main>
-        <footer class="platform-footer"><span>Puihaha</span> Membership management · Built with Laravel</footer>
+        @include('components.puihaha-footer')
     </div>
     @stack('page_scripts')
 </body>

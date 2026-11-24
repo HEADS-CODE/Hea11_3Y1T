@@ -35,7 +35,7 @@
         </form>
         <div class="auth-switch">Already registered? <a href="{{ route('login.member') }}">Sign in</a></div>
     </section>
-</main>
+</main>@include('components.puihaha-footer')
 @if (config('services.google.maps_key'))
 <script>window.initMemberMap=function(){const canvas=document.querySelector('[data-map-canvas]');if(!canvas)return;const map=new google.maps.Map(canvas,{center:{lat:14.5995,lng:120.9842},zoom:11,disableDefaultUI:true});let marker;map.addListener('click',event=>{if(marker)marker.setMap(null);marker=new google.maps.Marker({position:event.latLng,map});document.querySelector('#latitude').value=event.latLng.lat().toFixed(7);document.querySelector('#longitude').value=event.latLng.lng().toFixed(7);});};</script><script async defer src="https://maps.googleapis.com/maps/api/js?key={{ urlencode(config('services.google.maps_key')) }}&callback=initMemberMap" onerror="document.querySelector('[data-map-picker]')?.insertAdjacentHTML('afterend','<p class=\"map-fallback\">The map is unavailable. You can continue using the typed address.</p>')"></script>
 @else

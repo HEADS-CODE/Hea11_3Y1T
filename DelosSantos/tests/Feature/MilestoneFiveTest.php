@@ -68,6 +68,59 @@ test('payments are created as one full level-fee payment', function () {
     ]))->toThrow(ValidationException::class);
 });
 
+test('payer details and member email are immutable snapshots on a paid receipt', function () {
+    [$member, $category, $level, $admin] = makeMilestoneFiveTransaction('snapshot-member@example.test');
+    $transaction = app(MembershipTransactionService::class)->create(compact('member', 'category', 'level') + ['type' => MembershipTransaction::TYPE_RENEWAL]);
+
+    $payment = app(MembershipTransactionService::class)->recordFullPayment(
+        $transaction,
+        MembershipTransaction::CHANNEL_GCASH,
+        $admin->id,
+        [
+            'payer_name' => 'Guardian Payer',
+            'payer_account_number' => '099123456782',
+            'payer_address' => 'Payer address snapshot',
+            'payer_latitude' => 14.5995,
+            'payer_longitude' => 120.9842,
+        ],
+    );
+
+    expect($transaction->fresh()->member_email_snapshot)->toBe('snapshot-member@example.test')
+        ->and($payment->payer_name)->toBe('Guardian Payer')
+        ->and($payment->payer_account_number)->toBe('099123456782')
+        ->and((float) $payment->payer_latitude)->toBe(14.5995);
+
+    $this->actingAs($admin)->get(route('admin.transactions.receipt', $transaction))
+        ->assertOk()
+        ->assertSee('Guardian Payer')
+        ->assertSee('099******82')
+        ->assertSee('snapshot-member@example.test')
+        ->assertDontSee('099123456782');
+});
+
+test('front desk checkout records a pending payer snapshot before cash is received', function () {
+    [$member, $category, $level, $admin] = makeMilestoneFiveTransaction('front-desk-member@example.test');
+    $transaction = app(MembershipTransactionService::class)->create(compact('member', 'category', 'level') + ['type' => MembershipTransaction::TYPE_APPLICATION]);
+    $service = app(MembershipTransactionService::class);
+
+    $pending = $service->markFrontDeskRequested($transaction, [
+        'payer_name' => 'Front Desk Payer',
+        'payer_account_number' => '09171234567',
+        'payer_address' => 'Front desk address',
+    ]);
+
+    expect($pending->status)->toBe('pending')
+        ->and($transaction->fresh()->status)->toBe(MembershipTransaction::STATUS_PENDING)
+        ->and($transaction->fresh()->payment_channel)->toBe(MembershipTransaction::CHANNEL_FRONT_DESK)
+        ->and($pending->payer_name)->toBe('Front Desk Payer');
+
+    $paid = $service->recordFrontDeskPayment($transaction->fresh(), $admin->id);
+
+    expect($paid->status)->toBe('paid')
+        ->and($paid->payer_name)->toBe('Front Desk Payer')
+        ->and($transaction->fresh()->status)->toBe(MembershipTransaction::STATUS_PAID);
+});
+
 test('every payment belongs to a valid transaction', function () {
     expect(fn () => Payment::create([
         'membership_transaction_id' => 999999,

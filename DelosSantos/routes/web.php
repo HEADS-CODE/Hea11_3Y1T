@@ -20,26 +20,29 @@ use App\Http\Controllers\AdminRequestController;
 use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\WeatherController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\AdminTaskController;
+use App\Http\Controllers\TaskExtensionRequestController;
+use App\Http\Controllers\MemberPortalController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/login/member');
 
 Route::get('/login/member', [LoginController::class, 'showMemberLogin'])->name('login.member');
-Route::post('/login/member', [LoginController::class, 'loginMember'])->name('login.member.submit');
+Route::post('/login/member', [LoginController::class, 'loginMember'])->middleware('throttle:auth-login')->name('login.member.submit');
 Route::get('/login/admin', [LoginController::class, 'showAdminLogin'])->name('login.admin');
-Route::post('/login/admin', [LoginController::class, 'loginAdmin'])->name('login.admin.submit');
+Route::post('/login/admin', [LoginController::class, 'loginAdmin'])->middleware('throttle:auth-login')->name('login.admin.submit');
 Route::get('/register/member', [RegistrationController::class, 'showMemberRegistration'])->name('register.member');
-Route::post('/register/member', [RegistrationController::class, 'registerMember'])->name('register.member.submit');
+Route::post('/register/member', [RegistrationController::class, 'registerMember'])->middleware('throttle:auth-register')->name('register.member.submit');
 Route::get('/register/admin', [RegistrationController::class, 'showAdminRegistration'])->name('register.admin');
-Route::post('/register/admin', [RegistrationController::class, 'registerAdmin'])->name('register.admin.submit');
+Route::post('/register/admin', [RegistrationController::class, 'registerAdmin'])->middleware('throttle:auth-register')->name('register.admin.submit');
 Route::get('/verify-email/{user}/{token}', [VerificationController::class, 'verify'])->name('verification.verify');
 Route::get('/forgot-password/member', fn () => app(PasswordController::class)->showForgot('member'))->name('password.request.member');
-Route::post('/forgot-password/member', fn (Illuminate\Http\Request $request) => app(PasswordController::class)->sendResetLink($request, 'member'))->name('password.email.member');
+Route::post('/forgot-password/member', fn (Illuminate\Http\Request $request) => app(PasswordController::class)->sendResetLink($request, 'member'))->middleware('throttle:password-reset')->name('password.email.member');
 Route::get('/forgot-password/admin', fn () => app(PasswordController::class)->showForgot('admin'))->name('password.request.admin');
-Route::post('/forgot-password/admin', fn (Illuminate\Http\Request $request) => app(PasswordController::class)->sendResetLink($request, 'admin'))->name('password.email.admin');
-Route::get('/reset-password/{role}/{token}', fn (Illuminate\Http\Request $request, string $role, string $token) => app(PasswordController::class)->showReset($request, $role, $token))->name('password.reset');
-Route::post('/reset-password/member', fn (Illuminate\Http\Request $request) => app(PasswordController::class)->reset($request, 'member'))->name('password.reset.member');
-Route::post('/reset-password/admin', fn (Illuminate\Http\Request $request) => app(PasswordController::class)->reset($request, 'admin'))->name('password.reset.admin');
+Route::post('/forgot-password/admin', fn (Illuminate\Http\Request $request) => app(PasswordController::class)->sendResetLink($request, 'admin'))->middleware('throttle:password-reset')->name('password.email.admin');
+Route::get('/reset-password/{role}/{token}', fn (Illuminate\Http\Request $request, string $role, string $token) => app(PasswordController::class)->showReset($request, $role, $token))->middleware('throttle:password-reset')->name('password.reset');
+Route::post('/reset-password/member', fn (Illuminate\Http\Request $request) => app(PasswordController::class)->reset($request, 'member'))->middleware('throttle:password-reset')->name('password.reset.member');
+Route::post('/reset-password/admin', fn (Illuminate\Http\Request $request) => app(PasswordController::class)->reset($request, 'admin'))->middleware('throttle:password-reset')->name('password.reset.admin');
 Route::get('/member-requests/{memberRequest}/verify-email/{token}', [MemberRequestController::class, 'verifyEmailChange'])->name('member.requests.verify-email');
 
 Route::middleware('auth')->group(function () {
@@ -47,7 +50,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/verify-email', [AccountStateController::class, 'verificationNotice'])->name('verification.notice');
     Route::get('/approval-pending', [AccountStateController::class, 'approvalPending'])->name('approval.pending');
     Route::get('/account/inactive', [AccountStateController::class, 'inactiveNotice'])->name('account.inactive');
-    Route::post('/verify-email/resend', [VerificationController::class, 'resend'])->name('verification.resend');
+        Route::post('/verify-email/resend', [VerificationController::class, 'resend'])->middleware('throttle:verification-resend')->name('verification.resend');
     Route::middleware('account.ready')->group(function () {
         Route::get('/weather', [WeatherController::class, 'show'])->middleware('throttle:30,1')->name('weather.show');
         Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
@@ -85,14 +88,25 @@ Route::middleware('auth')->group(function () {
         Route::get('/admin/activity', [ActivityController::class, 'index'])->name('admin.activity.index');
         Route::get('/admin/reports', [ReportController::class, 'index'])->name('admin.reports.index');
         Route::get('/admin/reports/export', [ReportController::class, 'export'])->name('admin.reports.export');
+        Route::get('/admin/tasks', [AdminTaskController::class, 'index'])->name('admin.tasks.index');
+        Route::get('/admin/tasks/create', [AdminTaskController::class, 'create'])->name('admin.tasks.create');
+        Route::post('/admin/tasks', [AdminTaskController::class, 'store'])->name('admin.tasks.store');
+        Route::get('/admin/tasks/{task}/edit', [AdminTaskController::class, 'edit'])->name('admin.tasks.edit');
+        Route::put('/admin/tasks/{task}', [AdminTaskController::class, 'update'])->name('admin.tasks.update');
+        Route::post('/admin/tasks/{task}/archive', [AdminTaskController::class, 'archive'])->name('admin.tasks.archive');
+        Route::post('/admin/task-extension-requests/{taskExtensionRequest}/approve', [TaskExtensionRequestController::class, 'approve'])->name('admin.task-extension-requests.approve');
+        Route::post('/admin/task-extension-requests/{taskExtensionRequest}/reject', [TaskExtensionRequestController::class, 'reject'])->name('admin.task-extension-requests.reject');
     });
 
     Route::middleware(['account.ready', 'role:member'])->group(function () {
         Route::get('/portal', fn () => redirect()->route('tasks.index'))->name('portal');
         Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
-        Route::post('/tasks', [TaskController::class, 'store'])->name('tasks.store');
+        Route::get('/my-tasks', [TaskController::class, 'myTasks'])->name('member.tasks');
         Route::patch('/tasks/{task}/complete', [TaskController::class, 'complete'])->name('tasks.complete');
-        Route::delete('/tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
+        Route::post('/tasks/{task}/extension-requests', [TaskExtensionRequestController::class, 'store'])->name('tasks.extension-requests.store');
+        Route::get('/my-membership', [MemberPortalController::class, 'membership'])->name('member.membership');
+        Route::get('/membership/categories', [MemberPortalController::class, 'categories'])->name('member.categories');
+        Route::get('/membership/levels', [MemberPortalController::class, 'levels'])->name('member.levels');
         Route::get('/my-transactions', [TransactionController::class, 'historyForMember'])->name('member.transactions');
         Route::get('/my-requests', [MemberRequestController::class, 'index'])->name('member.requests.index');
         Route::get('/my-transactions/{transaction}/receipt', [TransactionController::class, 'receipt'])->name('member.transactions.receipt');

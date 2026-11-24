@@ -2,18 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\NotificationDestinationResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class NotificationController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index(Request $request, NotificationDestinationResolver $resolver): JsonResponse
     {
         $notifications = $request->user()->notifications()->latest()->limit(20)->get()->map(fn ($notification) => [
             'id' => $notification->id,
             'title' => data_get($notification->data, 'title', 'Puihaha update'),
             'message' => data_get($notification->data, 'message', ''),
-            'url' => data_get($notification->data, 'url'),
+            'url' => $resolver->resolve($request->user(), data_get($notification->data, 'url')),
             'read' => $notification->read_at !== null,
             'created_at' => $notification->created_at?->diffForHumans(),
         ]);

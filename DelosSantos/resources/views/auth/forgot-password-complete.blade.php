@@ -20,6 +20,6 @@
         </form>
         <div class="auth-switch"><a href="{{ route($role === 'admin' ? 'login.admin' : 'login.member') }}">Return to sign in</a></div>
     </section>
-</main>
+</main>@include('components.puihaha-footer')
 </body>
 </html>

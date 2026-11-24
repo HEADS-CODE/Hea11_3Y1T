@@ -28,6 +28,6 @@
             </form>
             <div class="auth-switch"><a href="{{ route($role === 'admin' ? 'password.request.admin' : 'password.request.member') }}">Forgot password?</a><br>{{ $role === 'admin' ? 'Need an administrator account?' : 'Need a member account?' }} <a href="{{ route($role === 'admin' ? 'register.admin' : 'register.member') }}">Register</a><br>{{ $role === 'admin' ? 'Are you a member?' : 'Are you an administrator?' }} <a href="{{ route($role === 'admin' ? 'login.member' : 'login.admin') }}">Use {{ $role === 'admin' ? 'member' : 'administrator' }} login</a></div>
         </section>
-    </main>
+    </main>@include('components.puihaha-footer')
 </body>
 </html>

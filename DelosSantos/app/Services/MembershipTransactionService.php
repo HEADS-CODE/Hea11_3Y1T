@@ -18,6 +18,7 @@ class MembershipTransactionService
         return MembershipTransaction::create([
             'member_id' => $member->id,
             'member_name_snapshot' => $member->full_name,
+            'member_email_snapshot' => $member->email,
             'membership_number_snapshot' => $member->membership_number,
             'category_name_snapshot' => $attributes['category']->name,
             'level_name_snapshot' => $level->name,
@@ -32,7 +33,7 @@ class MembershipTransactionService
         ]);
     }
 
-    public function recordFullPayment(MembershipTransaction $transaction, string $method, ?int $userId = null): Payment
+    public function recordFullPayment(MembershipTransaction $transaction, string $method, ?int $userId = null, array $payer = []): Payment
     {
         $transaction->loadMissing('level', 'payment');
 
@@ -53,10 +54,15 @@ class MembershipTransactionService
             throw ValidationException::withMessages(['amount' => 'The payment must equal the selected level fee.']);
         }
 
-        return DB::transaction(function () use ($transaction, $method, $userId): Payment {
+        return DB::transaction(function () use ($transaction, $method, $userId, $payer): Payment {
             $payment = Payment::create([
                 'membership_transaction_id' => $transaction->id,
                 'amount' => $transaction->level->fee,
+                'payer_name' => $payer['payer_name'] ?? null,
+                'payer_account_number' => $payer['payer_account_number'] ?? null,
+                'payer_address' => $payer['payer_address'] ?? null,
+                'payer_latitude' => $payer['payer_latitude'] ?? null,
+                'payer_longitude' => $payer['payer_longitude'] ?? null,
                 'payment_reference' => $this->reference('PAY'),
                 'payment_method' => $method,
                 'status' => 'paid',
@@ -72,21 +78,83 @@ class MembershipTransactionService
         });
     }
 
-    public function markFrontDeskRequested(MembershipTransaction $transaction): void
+    public function markFrontDeskRequested(MembershipTransaction $transaction, array $payer = []): Payment
     {
-        $transaction->loadMissing('payment');
+        $transaction->loadMissing('payment', 'level');
 
-        if ($transaction->status !== MembershipTransaction::STATUS_PENDING || $transaction->payment) {
+        if ($transaction->status !== MembershipTransaction::STATUS_PENDING || ($transaction->payment && $transaction->payment->status !== 'pending')) {
             throw ValidationException::withMessages(['transaction' => 'Only a pending transaction without a payment can be sent to the front desk.']);
         }
 
-        $transaction->update([
-            'payment_channel' => MembershipTransaction::CHANNEL_FRONT_DESK,
-            'notes' => trim(implode(' ', array_filter([
-                $transaction->notes,
-                'Awaiting front-desk payment.',
-            ]))),
-        ]);
+        return DB::transaction(function () use ($transaction, $payer): Payment {
+            $payment = $transaction->payment ?: Payment::create([
+                'membership_transaction_id' => $transaction->id,
+                'amount' => $transaction->level->fee,
+                'payer_name' => $payer['payer_name'] ?? null,
+                'payer_account_number' => $payer['payer_account_number'] ?? null,
+                'payer_address' => $payer['payer_address'] ?? null,
+                'payer_latitude' => $payer['payer_latitude'] ?? null,
+                'payer_longitude' => $payer['payer_longitude'] ?? null,
+                'payment_reference' => $this->reference('PAY'),
+                'payment_method' => MembershipTransaction::CHANNEL_FRONT_DESK,
+                'status' => 'pending',
+                'paid_at' => null,
+            ]);
+
+            if ($transaction->payment) {
+                $payment->update([
+                    'payer_name' => $payer['payer_name'] ?? $payment->payer_name,
+                    'payer_account_number' => $payer['payer_account_number'] ?? $payment->payer_account_number,
+                    'payer_address' => $payer['payer_address'] ?? $payment->payer_address,
+                    'payer_latitude' => $payer['payer_latitude'] ?? $payment->payer_latitude,
+                    'payer_longitude' => $payer['payer_longitude'] ?? $payment->payer_longitude,
+                ]);
+            }
+
+            $transaction->update([
+                'payment_channel' => MembershipTransaction::CHANNEL_FRONT_DESK,
+                'notes' => trim(implode(' ', array_filter([
+                    $transaction->notes,
+                    'Awaiting front-desk payment.',
+                ]))),
+            ]);
+
+            return $payment->fresh();
+        });
+    }
+
+    public function recordFrontDeskPayment(MembershipTransaction $transaction, ?int $userId = null): Payment
+    {
+        $transaction->loadMissing('level', 'payment');
+
+        if ($transaction->payment_channel !== MembershipTransaction::CHANNEL_FRONT_DESK) {
+            throw ValidationException::withMessages(['transaction' => 'Only front-desk transactions can receive cash payment here.']);
+        }
+
+        if ($transaction->payment?->status === 'paid') {
+            throw ValidationException::withMessages(['transaction' => 'This transaction already has a recorded payment.']);
+        }
+
+        return DB::transaction(function () use ($transaction, $userId): Payment {
+            $payment = $transaction->payment ?: Payment::create([
+                'membership_transaction_id' => $transaction->id,
+                'amount' => $transaction->level->fee,
+                'payment_reference' => $this->reference('PAY'),
+                'payment_method' => MembershipTransaction::CHANNEL_FRONT_DESK,
+                'status' => 'pending',
+            ]);
+
+            $payment->update([
+                'amount' => $transaction->level->fee,
+                'payment_method' => MembershipTransaction::CHANNEL_FRONT_DESK,
+                'status' => 'paid',
+                'paid_at' => now(),
+                'recorded_by_user_id' => $userId,
+            ]);
+            $transaction->update(['status' => MembershipTransaction::STATUS_PAID]);
+
+            return $payment->fresh();
+        });
     }
 
     public function approve(MembershipTransaction $transaction, int $userId): void

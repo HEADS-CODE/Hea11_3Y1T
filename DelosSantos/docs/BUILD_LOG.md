@@ -159,3 +159,121 @@
 - Added a View documents action to the member profile, keeping Archive/Restore below it.
 - Added regression coverage for document listing, member isolation, and inline administrator viewing.
 - Current database check: member records currently have no latitude/longitude pairs, while an administrator profile has coordinates. Existing member addresses therefore need a map pin captured and approved before member weather can load.
+
+## Batch 1 — administrator-owned learning tasks
+
+- Reworked tasks so administrators assign, edit, and archive member learning tasks; members can only view their own active assignments and toggle completion.
+- Added additive migration `2026_11_24_000001_add_admin_task_fields_to_tasks_table.php` for task creator, status, deadline, publication, and archive metadata. Existing completed task rows were preserved and marked completed.
+- Added additive migration `2026_11_24_000002_create_task_extension_requests_table.php` for member deadline-extension requests, administrator decisions, notes, and review timestamps.
+- Added `AdminTaskController`, `TaskExtensionRequestController`, `TaskExtensionRequest` model, three Form Requests, and queued `TaskPortalNotification` with after-commit dispatch.
+- Added administrator task register, assignment form, edit form, archive action, and extension-request approval/rejection controls. Added the member “i” extension modal and removed member task creation/deletion controls.
+- Added a visible Insights section with three chart cards in one column and three rows: completion status, recent assignments, and recent completions.
+- Added audit entries for task creation, updates, archive, completion/reopen, and extension-request decisions.
+- Verification: migrations applied additively; 37 tests passed with 183 assertions; `php artisan route:list` shows 103 routes; `npm run build` passed; public login/registration pages returned HTTP 200; guest access to `/tasks` and `/admin/tasks` redirected to login.
+- Known issue: the existing Pest result-cache directory still reports a Windows permission warning, but the full suite completes successfully with `--do-not-cache-result`.
+- Manual smoke URLs: `/admin/tasks`, `/admin/tasks/create`, `/tasks`, and `/tasks#insights`.
+
+## Batch 1 hotfixes and Batch 2 — payer snapshots and redacted receipts
+
+- Added an `All active members` assignment option. One task record is created for each active, non-archived member inside one database transaction, with a task notification queued for each member after commit.
+- Simplified member extension requests to a reason-only form. The requested deadline is now nullable, while the administrator must choose the new deadline when approving the request.
+- Switched task and extension database notifications to immediate after-commit delivery so they appear without a local queue worker; the notification class still follows Laravel's queued/after-commit convention for environments that use a worker.
+- Redesigned the three Insights rows, added the authenticated role-aware 403 recovery page, improved auth split-screen alignment/sticky hero behavior, and replaced raw profile-request JSON with a readable changed-field comparison.
+- Added additive migration `2026_11_24_000003_make_task_extension_deadline_optional.php`.
+- Added additive migration `2026_11_24_000004_add_payer_and_email_snapshots.php`. Existing transaction email snapshots are backfilled from the member profile; payer fields are nullable for existing payments and are captured for new checkout flows.
+- Added a two-step payment checkout for online and front-desk methods. Payer name, account/contact number, address, and optional map coordinates are stored on the payment only and never overwrite the member profile.
+- Added front-desk pending-payment handling, administrator cash recording, immutable member-email snapshots, and receipt redaction that displays payer account/contact values as first-three/last-two digits with six masking characters.
+- Prevented pending front-desk placeholders from appearing as paid or exposing a receipt before the cash payment is recorded.
+- Verification: 41 tests passed with 207 assertions; 103 application routes listed; both additive migrations applied; PHP syntax checks passed for 90 files; `git diff --check` passed; Vite production build passed; public auth/branding/background smoke URLs returned HTTP 200; guest access to protected task and transaction pages redirected with HTTP 302. The only remaining local warning is Pest's unwritable vendor result-cache folder; it does not change the passing result.
+- Manual smoke URLs: `/admin/tasks/create`, `/admin/tasks`, `/tasks#insights`, `/admin/requests/{id}`, `/member/transactions`, `/member/transactions/{transaction}/payment`, `/admin/transactions`, and `/admin/transactions/{transaction}/receipt`.
+
+## Task workspace, navigation, and authentication refinement
+
+- Added additive migration `2026_11_24_000005_add_priority_to_tasks_table.php`. Existing task rows remain intact and use the database default `medium` priority.
+- Added High, Medium, and Low priority validation, administrator assignment/edit controls, administrator search and priority filters, and theme-aligned priority badges on member and administrator task surfaces.
+- Split the member portal into Home (`/tasks`) and the dedicated My Tasks workspace (`/my-tasks`). Home now shows weather, live summary counters, the five highest-priority/nearest-deadline incomplete tasks, and Insights; My Tasks contains the full searchable, filterable, paginated task list.
+- Added member-readable My Membership, Categories, and Levels pages and synchronized the member navigation to Home, My Tasks, My Membership, Categories, Levels, and History. Mobile navigation continues to use the accessible menu dropdown.
+- Added AJAX task completion with JSON fallback behavior: completion status, summary counters, completion percentage, overdue pill, and completion chart points update without a full page reload; the original form remains available if JavaScript or the request fails.
+- Shortened the administrator registration hero to “Guide the learning journey.”, retained “Begin your next chapter.” for member registration, and made role eyebrow labels larger with the role word emphasized.
+- Updated execution order: Batch 2 payer snapshots and redacted receipts remain complete; all later task, navigation, and member-portal work must treat `/tasks` as Home and `/my-tasks` as the full task workspace.
+- Verification during this refinement: priority migration applied successfully; focused regression tests passed; full regression, route inventory, asset build, and smoke checks are recorded below after completion.
+
+### Final verification for this refinement
+
+- Verification: 45 tests passed with 244 assertions; 107 application routes listed; priority migration `2026_11_24_000005_add_priority_to_tasks_table` is applied; PHP syntax checks passed for 92 files; `git diff --check` passed; and `npm run build` passed.
+- HTTP smoke checks: `/login/member`, `/login/admin`, `/register/member`, `/register/admin`, the supplied logo asset, and the supplied authentication background returned HTTP 200. Guest requests to `/tasks`, `/my-tasks`, `/my-membership`, `/membership/categories`, `/membership/levels`, `/admin/tasks`, `/admin/tasks/create`, and `/my-transactions` correctly returned HTTP 302 to authentication.
+- Known environment warning: Pest still cannot write its vendor result-cache file in this Windows session; the suite completes successfully with `--do-not-cache-result`. Vite keeps the authentication background URL for runtime resolution by design.
+
+## Batch 3 completion and Batch 4 — self-service wiring, notifications, admin workspace, and print views
+
+- Finished level-change prefill: `/membership/levels` now sends `?level={id}`, the selected level is restored in the request form, and a live benefits, fee, and validity card updates on initial load and selection changes.
+- Finished category-change prefill: `/membership/categories` now sends `?category={id}` and the request remains a pending administrator review without changing the member record immediately. Current category/level cards are labeled instead of offering an invalid self-change action.
+- Expanded `/my-requests` to include profile, category, reactivation, and task-extension requests, with request status, administrator notes, and the count/privacy status of supporting documents.
+- Added `NotificationDestinationResolver` and applied it to database notifications and notification JSON responses. Destinations are constrained to the recipient’s role, same-application routes only, and fall back to `/tasks` for members or `/admin/dashboard` for administrators. Notification links are marked read before navigation; profile and notification dropdowns are mutually exclusive and close on outside click or Escape.
+- Added administrator dashboard sub-tabs for Latest transactions and Audit trail, spaced the weather card from the activity section, and displayed immutable `member_email_snapshot` values on the dashboard and transaction register.
+- Removed the legacy-test-data badge from the user-facing member directory/profile and moved the member status pill into a dedicated row below the email so mobile profiles do not overlap.
+- Replaced inline cancellation inputs with accessible centered cancellation/reason modals, added clean pagination arrows, and formatted activity-log details as labeled key/value data rather than raw JSON.
+- Added a Print Report control, generated filter/timestamp summaries, and print CSS for reports and activity logs; navigation, filters, controls, and pagination are hidden in print output.
+- Added `BatchFourTest.php` for self-service prefill, task-extension request history, notification fallback isolation, and historical email snapshot display.
+- No migration was required for this batch; the existing additive schema already contained the required request, document, task-extension, notification, audit, and transaction snapshot tables.
+- Verification: 49 tests passed with 264 assertions; 107 application routes listed; `git diff --check` passed; PHP syntax and Blade rendering checks passed; `npm run build` passed. The only local warning is Pest’s unwritable vendor result-cache file, so the suite was run with `--do-not-cache-result`.
+- Manual smoke URLs: `/membership/levels`, `/membership/level-change?level={id}`, `/membership/categories`, `/membership/category-change?category={id}`, `/my-requests`, `/admin/dashboard`, `/admin/transactions`, `/admin/reports`, `/admin/activity`, and `/admin/requests/{id}`.
+
+## Batch 5 — weather/maps sync, private-request validation, and responsive polish
+
+- Connected the Member Home weather card to the member’s saved latitude/longitude and the Administrator Dashboard weather card to the authenticated administrator’s saved office coordinates. Both use the configured safe fallback location when a profile has no pin; an administrator never inherits a member’s private location.
+- Hardened the server-side OpenWeather request with a connection timeout, request timeout, retry, caching, normalized weather icon data, and graceful provider/key failure responses. The API key remains server-side and is never sent to Blade or JavaScript.
+- Corrected payer checkout map initialization so the payer address, map click/drag pin, and hidden payer coordinate fields share one initialized scope. Editing typed address fields clears stale coordinates before geocoding can replace them.
+- Moved profile, category-change, and reactivation document validation into dedicated Form Request classes. Name/birth-date changes, category eligibility, and reactivation require supporting files as appropriate; ordinary profile edits remain document-free; file limits, MIME types, and privacy consent remain enforced.
+- Kept documents on the private `member_private` local disk and preserved administrator-only policy-protected viewing. No public storage route was added.
+- Added a redesigned weather surface for light/dark themes, a mobile portal header/drawer layout below 768px, tighter mobile control sizing, improved weather typography, and a consistent “Puihaha E-Learning Platform · © 2026” footer across platform and authentication pages.
+- No additive migration was required: members, admin profiles, and payments already contained the required coordinate columns; existing task and transaction records were untouched.
+- Added `BatchFiveWeatherAndDocumentsTest.php` covering saved/fallback weather coordinates, conditional document validation, and private document storage configuration.
+- Verification: 53 tests passed with 283 assertions; 107 application routes listed; PHP syntax checks passed for the Batch 5 controllers, requests, and feature test; `git diff --check` passed; `php artisan view:clear` passed; and `npm run build` passed. The only local warnings are Pest’s unwritable vendor result-cache file (use `--do-not-cache-result`) and Vite’s intentional runtime resolution notice for the authentication background asset.
+- HTTP smoke checks: the public auth pages, forgot-password pages, supplied logo/icon assets, and authentication background returned HTTP 200. Guest requests to `/tasks`, `/my-tasks`, `/my-membership`, `/membership/categories`, `/membership/levels`, `/my-requests`, `/admin/dashboard`, `/admin/tasks`, `/admin/reports`, and `/admin/activity` correctly returned HTTP 302 to authentication.
+
+## Batch 6 — final regression, documentation, and Alwaysdata free-plan hardening
+
+- Added production-only HTTPS URL forcing and configurable trusted-proxy handling. Local development remains HTTP; production-generated verification, password-reset, notification, and receipt links use the configured HTTPS application URL.
+- Added named rate limiters for login, registration, verification resend, and password-reset endpoints. Existing role-aware controller throttles remain in place as a second protection layer.
+- Added safe `.env.production.example` placeholders for Alwaysdata, including PHP 8.3/MariaDB values, secure cookies, database sessions/cache, synchronous queues, HTTPS URL, private API placeholders, and error-level logging. Updated `.env.example` for the local `tw31_tasks` MySQL setup and synchronous queues.
+- Added themed 404, 419, 429, and 500 views while preserving the existing 419 session-expiry redirect behavior for browser form requests and the role-aware 403 page.
+- Confirmed private supporting documents remain on the non-public `member_private` disk and are only served through authenticated administrator policy routes. No public document URL was added.
+- Replaced the default Laravel README with the Puihaha system overview, role boundaries, local XAMPP setup, seed configuration, Maps/OpenWeather setup, mail/queue behavior, testing, privacy, and deployment references.
+- Added `docs/DEPLOYMENT.md` with the Alwaysdata layout, PHP 8.3/MariaDB deployment sequence, HTTPS/SMTP/Maps guidance, production migration safeguards, and a PowerShell clean-package script that excludes secrets, private local uploads, development dependencies, tests, docs, SQL, ZIPs, Git metadata, and caches.
+- No migration was required in Batch 6, and no database records were changed. Existing additive migrations remain untouched.
+
+### Batch 6 manual QA checklist
+
+#### Member flow
+
+- [ ] Open `/login/member` over HTTPS; confirm the themed page loads without mixed-content warnings.
+- [ ] Submit empty, invalid, and repeated login attempts; confirm validation, generic credential errors, and throttling behave correctly.
+- [ ] Register a member, confirm the email, and verify the account reaches the correct pending/approval state.
+- [ ] Use Forgot password from the member login; confirm the reset link contains the member role and cannot open the administrator flow.
+- [ ] Sign in and verify `/tasks`, `/my-tasks`, membership pages, history, requests, notifications, weather, and receipts are member-scoped.
+- [ ] Save a map pin and a typed address; verify coordinates persist and weather uses the saved location or safe fallback.
+- [ ] Submit a profile/category/reactivation request and verify document requirements, consent, private storage, and request status.
+- [ ] Open a receipt, use the back control, print it, and confirm navigation controls do not appear in print output.
+- [ ] Expire a form/session and confirm the user returns to member login with a helpful message rather than a raw error.
+- [ ] Check mobile navigation, light/dark theme switching, footer placement, typography, and 404/419/429/500 pages.
+
+#### Administrator flow
+
+- [ ] Open `/login/admin`; confirm the administrator login, generic errors, remember-me behavior, and throttling.
+- [ ] Register/approve an administrator where applicable, then confirm administrator-only routes remain isolated from members.
+- [ ] Use administrator Forgot password and confirm the reset link stays in the administrator broker and destination.
+- [ ] Review the dashboard weather fallback and saved office coordinates without exposing a member’s private location.
+- [ ] Create, assign, edit, prioritize, complete/reopen, archive, and extend tasks; verify notifications and role-safe destinations.
+- [ ] Review members, categories, levels, approvals, transactions, reports, activity, and print views.
+- [ ] Open a member’s private documents and confirm an administrator can view them while a member receives an authorization response.
+- [ ] Test cancellation/reason modals, immutable email/payer snapshots, redacted receipts, pagination, mobile layout, and theme contrast.
+- [ ] Confirm production error pages contain no debug stack traces and that config caching succeeds after the real server `.env` is configured.
+
+### Batch 6 verification record
+
+- Full feature suite: 53 tests passed with 283 assertions before hardening changes.
+- Route inventory before hardening: 107 application routes. Batch 6 adds no routes.
+- Final verification: 57 tests passed with 369 assertions; 107 application routes listed; `npm run build` passed; `php artisan optimize` completed successfully with normal Windows write permissions and was cleared afterward; `composer validate --strict` passed; `composer install --no-dev --dry-run --no-interaction` completed without changing the local installation; runtime `env()` audit found no calls in `app/` or `routes/`; and `git diff --check` passed.
+- Known local environment note: Pest’s Windows vendor result-cache warning is avoided with `--do-not-cache-result`; Vite’s runtime authentication-background resolution notice is expected.
+- HTTP smoke checks: `/login/member` and `/login/admin` returned HTTP 200, the protected portal remains authentication-gated, and an unknown URL rendered the themed 404 page. Batch 6 completes the local deployment-preparation scope. Live Alwaysdata deployment and production SMTP activation remain a separate user-controlled pass.

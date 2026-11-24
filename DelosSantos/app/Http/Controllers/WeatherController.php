@@ -27,7 +27,7 @@ class WeatherController extends Controller
 
         try {
             $weather = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($key, $lat, $lon): array {
-                $response = Http::timeout(8)->get(config('services.openweather.base_url'), [
+                $response = Http::connectTimeout(3)->timeout(8)->retry(1, 200)->get(config('services.openweather.base_url'), [
                     'lat' => $lat,
                     'lon' => $lon,
                     'appid' => $key,
@@ -44,6 +44,7 @@ class WeatherController extends Controller
                     'place' => data_get($payload, 'name', 'Selected location'),
                     'temperature' => round((float) data_get($payload, 'main.temp', 0), 1),
                     'description' => ucfirst((string) data_get($payload, 'weather.0.description', 'Unavailable')),
+                    'icon' => (string) data_get($payload, 'weather.0.icon', '01d'),
                     'humidity' => (int) data_get($payload, 'main.humidity', 0),
                     'wind_speed' => round((float) data_get($payload, 'wind.speed', 0), 1),
                 ];

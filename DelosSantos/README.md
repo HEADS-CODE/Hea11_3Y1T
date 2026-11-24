@@ -1,59 +1,103 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
-
 <p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+    <img src="public/assets/logo/puihaha-logo-light-mode.svg" width="180" alt="Puihaha E-Learning Platform">
 </p>
 
-## About Laravel
+# Puihaha E-Learning & Membership Platform
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Puihaha is a Laravel-based Membership Management and Transaction Processing System with an e-learning task workspace. Administrators manage member records, categories, levels, payments, transactions, tasks, extension requests, reports, notifications, and supporting-document reviews. Members manage their own portal, complete administrator-assigned tasks, submit eligible requests, pay membership fees, and view their own history and receipts.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+The project follows the professor’s Laravel conventions: migrations and Eloquent relationships, Form Request validation, named routes, Blade CSRF/error directives, atomic database transactions, role-aware authentication, queued-compatible notifications, Google Maps coordinates, and server-side OpenWeather requests.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Roles and access boundaries
 
-## Learning Laravel
+- **Administrator:** manages members, categories, levels, tasks, approvals, transactions, payments, reports, activity logs, and private supporting documents.
+- **Member:** sees only their own portal, tasks, membership information, payments, receipts, requests, notifications, and weather location.
+- The same email may exist once per role, but the login URL selects the role. Member and administrator password-reset brokers and notifications remain isolated.
+- Pending, unverified, disabled, inactive, and archived states are handled by the account-state screens rather than bypassing role authorization.
+- Supporting documents stay on the private `member_private` disk and are served only through authenticated administrator policy checks. They are never exposed through `public/storage`.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## Main features
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- Member CRUD, search, status management, archiving, and confirmed permanent deletion.
+- Membership categories and levels with fees, validity, benefits, and member assignment.
+- Membership application, renewal, level-change, category-change, and front-desk payment flows.
+- One full payment per transaction, exact level-fee validation, transaction statuses, immutable email snapshots, payer snapshots, redacted receipts, and transaction history.
+- Administrator-owned learning tasks, priority filters, member completion toggles, deadline-extension requests, notifications, and Insights charts.
+- Member and administrator weather cards using saved coordinates or the configured safe fallback location.
+- Google Maps pin capture for member addresses and payer details, with typed-address fallback when Maps is unavailable.
+- Responsive purple/violet portal styling, light/dark themes, mobile navigation, print views, and themed error pages.
 
-## Laravel Sponsors
+## Local XAMPP setup
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+1. Start Apache and MySQL in XAMPP.
+2. Create or select the local MySQL database named `tw31_tasks`.
+3. In this project directory, install dependencies and prepare the local environment:
 
-### Premium Partners
+   ```powershell
+   composer install
+   Copy-Item .env.example .env
+   php artisan key:generate
+   ```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+4. Set the local database values in `.env` for XAMPP (`mysql`, `127.0.0.1`, port `3306`, database `tw31_tasks`, and the local MySQL username). Never commit `.env`.
+5. Set `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` locally if the initial administrator should be seeded. The password is read only from `.env`; it is not stored in this README or in source code.
+6. Run additive migrations and seed the defaults:
 
-## Contributing
+   ```powershell
+   php artisan migrate
+   php artisan db:seed
+   ```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+7. Build the frontend and start the local server:
 
-## Code of Conduct
+   ```powershell
+   npm install
+   npm run build
+   php artisan serve
+   ```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+   Open `http://127.0.0.1:8000/login/member` or `http://127.0.0.1:8000/login/admin`.
 
-## Security Vulnerabilities
+Before any migration against an existing database, export a phpMyAdmin **Custom** SQL backup and copy the project folder. Do not use `migrate:fresh`, `db:wipe`, or a destructive reset against the project database.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Maps, weather, mail, and queues
 
-## License
+The local `.env` may contain:
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+- `GOOGLE_MAPS_API_KEY` for the browser-restricted Maps JavaScript key.
+- `OPENWEATHER_KEY` and `OPENWEATHER_BASE_URL` for the server-side weather request.
+- `WEATHER_DEFAULT_LATITUDE` and `WEATHER_DEFAULT_LONGITUDE` for the safe fallback location.
+- `MAIL_MAILER=log` for a no-cost local mail fallback, or Mailpit/SMTP values for actual delivery.
+- `QUEUE_CONNECTION=sync` for environments without a queue worker. Database notifications remain immediately visible. Queue-compatible notifications still use Laravel’s after-commit pattern.
+
+The OpenWeather key is never passed to Blade or browser JavaScript. If Maps or weather configuration is missing, typed addresses and the rest of the portal continue to work with a clear fallback state.
+
+## Testing and verification
+
+Run the full checks from the project directory:
+
+```powershell
+php artisan test --do-not-cache-result
+php artisan route:list
+npm run build
+git diff --check
+```
+
+The `--do-not-cache-result` option avoids the known Windows permission warning from the local Pest vendor cache. Production dependency validation can be previewed without modifying the working installation with:
+
+```powershell
+composer validate --strict
+composer install --no-dev --dry-run --no-interaction
+```
+
+## Deployment documentation
+
+The local-first Alwaysdata preparation guide is in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md). It covers PHP 8.3, MariaDB, the `puihaha.alwaysdata.net` URL, the `/www/puihaha-app/public/` web root, the `mysql-puihaha.alwaysdata.net` database host, SMTP choices, Google Maps referrer restrictions, HTTPS, and a safe clean-package script.
+
+## Privacy and source-control rules
+
+- Do not display or commit `.env`, passwords, API keys, reset tokens, private SQL exports, uploaded documents, or production database dumps.
+- Use `.env.example` and `.env.production.example` only as placeholder templates.
+- Do not place private documents in `public/storage` or generate public URLs for them.
+- Keep financial history snapshots independent of later member profile edits.
+- Review `git diff --cached --name-only` before every commit and stage only the intended `DelosSantos` project files.
