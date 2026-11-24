@@ -6,18 +6,25 @@ use App\Models\AuditLog;
 use App\Models\EmailVerificationToken;
 use App\Models\Member;
 use App\Models\MemberDocument;
+use App\Models\MemberInvitation;
 use App\Models\MembershipCategory;
 use App\Models\MembershipLevel;
 use App\Models\User;
+use App\Notifications\MemberInvitationNotification;
 use App\Notifications\VerifyEmailNotification;
 use App\Rules\PhilippinePhone;
+use App\Rules\MinimumAge;
+use App\Services\MembershipTransactionService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Response;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class MemberController extends Controller
@@ -66,10 +73,45 @@ class MemberController extends Controller
     {
         $validated = $this->validated($request);
         $validated['membership_number'] = $this->generateMembershipNumber();
+        $invitation = null;
 
-        Member::create($validated);
+        DB::transaction(function () use ($validated, &$invitation): void {
+            $member = Member::create([
+                ...$validated,
+                'status' => 'pending',
+            ]);
 
-        return redirect()->route('members.index')->with('success', 'Member registered successfully.');
+            $user = new User();
+            $user->forceFill([
+                'member_id' => $member->id,
+                'name' => $member->full_name,
+                'email' => $member->email,
+                'password' => Hash::make(Str::random(64)),
+                'role' => User::ROLE_MEMBER,
+                'status' => User::STATUS_PENDING,
+            ])->save();
+
+            app(MembershipTransactionService::class)->create([
+                'member' => $member,
+                'category' => $member->category,
+                'level' => $member->level,
+                'type' => \App\Models\MembershipTransaction::TYPE_APPLICATION,
+                'created_by_user_id' => auth()->id(),
+            ]);
+
+            [$invitation, $rawToken] = MemberInvitation::issueFor($member, $user, auth()->user());
+            DB::afterCommit(fn () => $user->notify(new MemberInvitationNotification(
+                route('member.invitation.show', ['token' => $rawToken]),
+            )));
+
+            AuditLog::record('member.created', [
+                'member_id' => $member->id,
+                'status' => 'pending',
+                'invitation_sent' => true,
+            ], $member, auth()->user());
+        });
+
+        return redirect()->route('members.index')->with('success', 'Member created as pending. A secure invitation was sent so they can set a password and confirm their email.');
     }
 
     public function show(Member $member): View
@@ -86,6 +128,16 @@ class MemberController extends Controller
         return view('members.documents', compact('member'));
     }
 
+    public function documentViewer(Member $member, MemberDocument $document): Response
+    {
+        abort_unless((int) $document->member_id === (int) $member->id, 404);
+        Gate::authorize('view', $document);
+
+        return response()->view('members.document-viewer', compact('member', 'document'))
+            ->header('Cache-Control', 'no-store, private, max-age=0')
+            ->header('Pragma', 'no-cache');
+    }
+
     public function viewDocument(Member $member, MemberDocument $document): BinaryFileResponse
     {
         abort_unless((int) $document->member_id === (int) $member->id, 404);
@@ -98,6 +150,8 @@ class MemberController extends Controller
             'Content-Type' => $document->mime_type,
             'Content-Disposition' => 'inline; filename="'.str_replace('"', '', $document->original_name).'"',
             'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'no-store, private, max-age=0',
+            'Pragma' => 'no-cache',
         ]);
     }
 
@@ -224,6 +278,10 @@ class MemberController extends Controller
 
     private function validated(Request $request, ?Member $member = null): array
     {
+        $categoryName = MembershipCategory::whereKey($request->input('membership_category_id'))->value('name');
+        $isSeniorCitizen = is_string($categoryName) && strcasecmp(trim($categoryName), 'Senior Citizen') === 0;
+        $birthDateRequired = $member === null || $isSeniorCitizen;
+
         return $request->validate([
             'first_name' => ['required', 'string', 'max:100'],
             'middle_name' => ['nullable', 'string', 'max:100'],
@@ -243,7 +301,17 @@ class MemberController extends Controller
             'city_municipality' => ['nullable', 'string', 'max:100'],
             'province' => ['nullable', 'string', 'max:100'],
             'zip_code' => ['nullable', 'digits:4'],
-            'birth_date' => ['nullable', 'date', 'before_or_equal:today'],
+            'birth_date' => [
+                $birthDateRequired ? 'required' : 'nullable',
+                'date',
+                'before_or_equal:today',
+                new MinimumAge(
+                    $isSeniorCitizen ? 60 : 18,
+                    $isSeniorCitizen
+                        ? 'You must be at least 60 years old for the Senior Citizen category.'
+                        : 'Members must be at least 18 years old.',
+                ),
+            ],
             'gender' => ['required', Rule::in(config('membership.genders'))],
             'membership_category_id' => ['required', 'exists:membership_categories,id'],
             'membership_level_id' => ['required', 'exists:membership_levels,id'],

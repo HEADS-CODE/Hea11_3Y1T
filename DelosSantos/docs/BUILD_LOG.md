@@ -277,3 +277,47 @@
 - Final verification: 57 tests passed with 369 assertions; 107 application routes listed; `npm run build` passed; `php artisan optimize` completed successfully with normal Windows write permissions and was cleared afterward; `composer validate --strict` passed; `composer install --no-dev --dry-run --no-interaction` completed without changing the local installation; runtime `env()` audit found no calls in `app/` or `routes/`; and `git diff --check` passed.
 - Known local environment note: Pest’s Windows vendor result-cache warning is avoided with `--do-not-cache-result`; Vite’s runtime authentication-background resolution notice is expected.
 - HTTP smoke checks: `/login/member` and `/login/admin` returned HTTP 200, the protected portal remains authentication-gated, and an unknown URL rendered the themed 404 page. Batch 6 completes the local deployment-preparation scope. Live Alwaysdata deployment and production SMTP activation remain a separate user-controlled pass.
+
+### Batch 7A
+
+- Fixed approval workflow selection so administrator approval targets the member's application transaction instead of a newer renewal or level-change transaction. A fully paid application may be approved from paid, an already-approved application remains valid and idempotent, and the amount is checked against the selected level fee.
+- Initial application transaction approval now returns the administrator to /admin/approvals with next-step feedback. Level-change request creation also provides explicit payment-next feedback.
+- Removed the duplicate administrator task toast include, raised portal/auth toast stacking above content while keeping it below the sticky navigation, centered the verification/approval/inactive state cards, and added password/select/map spacing refinements.
+- Added dynamic minimum-age validation: 18 for member/admin registration and administrator member create/edit, and 60 when the Senior Citizen category is selected. Added a required terms/privacy acceptance checkbox to member and administrator registration.
+- No database migration was needed for Batch 7A; no migration command was run.
+- Batch-specific regression coverage: tests/Feature/BatchSevenATest.php covers paid/already-approved application behavior, newer pending transaction isolation, initial-application redirect, registration consent, dynamic age validation, and administrator member create/edit age rules.
+- Verification: php artisan test --do-not-cache-result passed 61 tests with 392 assertions; php artisan route:list reported 103 routes; npm run build passed after the required local Windows process-permission retry; and git diff --check passed. The existing Pest Windows result-cache permission warning remains when the cache is enabled, so the no-cache test flag is the reliable local command.
+
+### Batch 7C locked scope addendum
+
+- Carry forward the role-aware Remember-me audit: verify remember input reaches the role-scoped login attempt, protected URLs restore the correct role session, login forms expose browser autocomplete attributes and a clear Remember-me tooltip, and sign-out invalidates the remember token.
+- Carry forward the administrator portal alignment: administrator login lands on /admin/dashboard; navigation is ordered Dashboard, Approvals, Members, Transactions, Tasks, Membership, Reports, and Activity log; Approvals shows a pending-count pill; Membership groups Categories and Levels in an accessible keyboard-friendly dropdown.
+
+### Batch 7B
+
+- Added the member invitation schema with member/user relationships, a hashed one-time token, expiry and consumption timestamps, creator administrator ID, and timestamps. No raw invitation token or plaintext password is persisted.
+- Administrator-created members now receive a pending member account, a pending application transaction, and a queued-after-commit invitation email. The invitation acceptance flow sets the member password, confirms the invited email, consumes the token, and leaves payment/administrator approval as the next workflow steps.
+- Added regression coverage for valid acceptance, password policy, expired/reused invitation rejection, pending application creation, and token privacy.
+- Migration 2026_11_24_000006_create_member_invitations_table ran successfully locally.
+- Verification: full suite passed 66 tests with 449 assertions; route list reports 105 routes; npm run build passed with the existing runtime-resolved authentication background notice; git diff --check passed.
+
+### Batch 7C — navigation, remember-me clarity, portal polish, and private document viewer
+
+- Administrator login now lands on /admin/dashboard. The administrator topbar and mobile drawer follow the workflow order Dashboard, Approvals, Members, Transactions, Tasks, Membership, Reports, and Activity log. Membership is an accessible keyboard-friendly Categories/Levels dropdown, closes on outside click or Escape, and shows the pending-account count when applicable.
+- Remember-me login now has an explanatory tooltip, and logout clears both the database remember token and the persistent browser recaller cookie. Added regression coverage for the administrator landing route, navigation order, and remember-me invalidation.
+- Added mobile drawer slide-down behavior, theme-switch visibility, mutual menu closing, reduced-motion modal transitions, and corrected member Insights smooth scrolling to #insights.
+- Refined the member Home greeting, task-workspace spacing and filters, membership/level/category typography, and the administrator member filters, transaction payment-channel layout, activity actor/action display, pagination, and report status select.
+- Added a bordered administrator-only inline document viewer with Back navigation, no-store headers, no download control, private-policy reminder, and an empty-state reminder when no documents exist. Existing private storage and policy boundaries remain unchanged.
+- No additive migration was needed for Batch 7C. The existing invitation migration remains database/migrations/2026_11_24_000006_create_member_invitations_table.php.
+- Verification: php artisan test --do-not-cache-result passed 68 tests with 462 assertions; php artisan route:list --except-vendor reported 106 routes; php artisan view:cache passed with the final Blade templates; npm run build passed; and git diff --check passed. Vite retains the expected runtime-resolution notice for the authentication background asset. Pest's vendor result-cache permission warning remains avoided by the no-cache test flag.
+
+### Batch 7D — targeted visual and responsive hotfix
+
+- Restored the administrator members filter to a single desktop row while retaining compact two-row mobile filters, widened the administrator task search, and kept a visible Clear reset action.
+- Increased result counters and membership card metadata, stabilized password eye alignment when validation text appears, aligned the member Home priority heading, and kept My Tasks charts in a desktop row with mobile stacking.
+- Preserved the compact mobile theme switch and added overflow-safe workspace sizing. No database migration or data change was needed for Batch 7D.
+- Follow-up visual correction: reduced the administrator task search/select widths and prevented the desktop Clear action from wrapping onto a second row.
+- Restored the compact desktop member-directory toolbar styling and changed the administrator task filter action to Search with the matching search icon.
+- Added an administrator Approvals dropdown for Account approvals and Member requests, renamed Membership setup to Membership without the visible caret, and added padding/wrapping fixes to private supporting-document rows on request review pages.
+- Improved dark-mode mobile navigation contrast for highlighted dropdowns and made the theme switch thumb/icon explicit so it remains visible at phone widths.
+- Added mobile-safe toast, notification/profile popover, and activity-pagination sizing, plus balanced topbar vertical spacing for the compact header.

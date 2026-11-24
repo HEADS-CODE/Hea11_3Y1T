@@ -12,10 +12,8 @@
     <a class="button button-primary" href="{{ route('admin.tasks.create') }}"><span>＋</span> Assign task</a>
 </div>
 
-@include('layouts._toasts')
-
 <form class="directory-toolbar admin-task-filters" method="GET" action="{{ route('admin.tasks.index') }}">
-    <input type="search" name="q" value="{{ $search }}" placeholder="Search task, member, or number" aria-label="Search tasks">
+    <div class="search-wrap task-admin-search"><span aria-hidden="true">⌕</span><input type="search" name="q" value="{{ $search }}" placeholder="Search task, member, or number" aria-label="Search tasks"></div>
     <select name="status" aria-label="Filter tasks by status">
         <option value="">All active tasks</option>
         <option value="assigned" @selected($status === 'assigned')>Assigned</option>
@@ -35,10 +33,8 @@
         @endforeach
     </select>
     <label class="admin-task-checkbox"><input type="checkbox" name="show_archived" value="1" @checked(request()->boolean('show_archived'))> Show archived</label>
-    <button class="button button-dark" type="submit">Filter</button>
-    @if ($search || $status || $priority || $memberId || request()->boolean('show_archived'))
-        <a class="clear-link" href="{{ route('admin.tasks.index') }}">Clear</a>
-    @endif
+    <button class="button button-dark" type="submit">Search</button>
+    <a class="clear-link" href="{{ route('admin.tasks.index') }}">Clear</a>
 </form>
 
 @if ($pendingExtensions->isNotEmpty())

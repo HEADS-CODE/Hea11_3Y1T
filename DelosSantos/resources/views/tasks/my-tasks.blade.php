@@ -5,7 +5,6 @@
 @section('content')
 <div class="page-intro task-workspace-intro">
     <div><span class="eyebrow">Project-management workspace</span><h1>My <em>tasks.</em></h1><p>Search, prioritize, and complete every administrator-assigned learning step in one focused workspace.</p></div>
-    <a class="button button-ghost" href="{{ route('tasks.index') }}">← Home</a>
 </div>
 
 <div class="task-workspace-shell" data-task-workspace data-page-size="8">
@@ -27,9 +26,10 @@
     <section class="panel task-list-workspace">
         <div class="panel-heading"><div><span class="section-kicker">Your learning space</span><h2>All assigned tasks</h2></div><span class="result-count" data-task-result-count>{{ $tasks->count() }} tasks</span></div>
         <form class="task-filter-bar" data-task-filter-form onsubmit="return false">
-            <label class="task-search-field"><span class="sr-only">Search tasks</span><input type="search" data-task-search placeholder="Search task title or instructions" autocomplete="off"></label>
+            <label class="task-search-field"><span class="task-search-icon" aria-hidden="true">⌕</span><span class="sr-only">Search tasks</span><input type="search" data-task-search placeholder="Search task title or instructions" autocomplete="off"></label>
             <select data-task-priority aria-label="Filter by priority"><option value="all">All priorities</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select>
             <select data-task-status aria-label="Filter by status"><option value="all">All statuses</option><option value="todo">To do</option><option value="overdue">Overdue</option><option value="completed">Completed</option><option value="extension_requested">Extension requested</option></select>
+            <button class="button button-dark task-filter-submit" type="button" data-task-filter-submit>Search</button>
             <button class="button button-ghost" type="button" data-task-filter-clear>Clear</button>
         </form>
         @if($tasks->isNotEmpty())

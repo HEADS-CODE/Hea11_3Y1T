@@ -79,7 +79,7 @@ test('member and administrator credentials cannot cross roles for the same email
         'password' => 'admin-secret',
     ]);
 
-    $response->assertRedirect(route('members.index'));
+    $response->assertRedirect(route('admin.dashboard'));
     $this->assertAuthenticatedAs($admin);
 });
 

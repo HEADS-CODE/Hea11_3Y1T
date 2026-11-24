@@ -23,6 +23,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\AdminTaskController;
 use App\Http\Controllers\TaskExtensionRequestController;
 use App\Http\Controllers\MemberPortalController;
+use App\Http\Controllers\MemberInvitationController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/login/member');
@@ -35,6 +36,8 @@ Route::get('/register/member', [RegistrationController::class, 'showMemberRegist
 Route::post('/register/member', [RegistrationController::class, 'registerMember'])->middleware('throttle:auth-register')->name('register.member.submit');
 Route::get('/register/admin', [RegistrationController::class, 'showAdminRegistration'])->name('register.admin');
 Route::post('/register/admin', [RegistrationController::class, 'registerAdmin'])->middleware('throttle:auth-register')->name('register.admin.submit');
+Route::get('/member-invitations/{token}', [MemberInvitationController::class, 'show'])->middleware('throttle:password-reset')->name('member.invitation.show');
+Route::post('/member-invitations/{token}', [MemberInvitationController::class, 'accept'])->middleware('throttle:password-reset')->name('member.invitation.accept');
 Route::get('/verify-email/{user}/{token}', [VerificationController::class, 'verify'])->name('verification.verify');
 Route::get('/forgot-password/member', fn () => app(PasswordController::class)->showForgot('member'))->name('password.request.member');
 Route::post('/forgot-password/member', fn (Illuminate\Http\Request $request) => app(PasswordController::class)->sendResetLink($request, 'member'))->middleware('throttle:password-reset')->name('password.email.member');
@@ -64,6 +67,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/admin/profile', [AdminProfileController::class, 'update'])->name('admin.profile.update');
         Route::resource('members', MemberController::class);
         Route::get('/members/{member}/documents', [MemberController::class, 'documents'])->name('members.documents.index');
+        Route::get('/members/{member}/documents/{document}', [MemberController::class, 'documentViewer'])->name('members.documents.show');
         Route::get('/members/{member}/documents/{document}/view', [MemberController::class, 'viewDocument'])->name('members.documents.view');
         Route::post('/members/{member}/archive', [MemberController::class, 'archive'])->name('members.archive');
         Route::post('/members/{member}/restore', [MemberController::class, 'restore'])->name('members.restore');

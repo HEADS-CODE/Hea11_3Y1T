@@ -13,10 +13,19 @@
             @include('layouts._topbar')
 
             <main class="content-wrap">
+                @php
+                    $homeMember = auth()->user()->member;
+                    $homeTitle = match ($homeMember?->gender) {
+                        'Female' => 'Ms.',
+                        'Male' => 'Mr.',
+                        default => '',
+                    };
+                    $homeGreeting = now()->hour >= 6 && now()->hour < 18 ? 'Best Day!' : 'Best Evening!';
+                @endphp
                 <section class="hero-section">
                     <div>
                         <span class="eyebrow">Your personal command center</span>
-                        <h1>Make room for<br><em>what matters.</em></h1>
+                        <h1 class="member-home-greeting">{{ $homeGreeting }}@if($homeTitle) {{ $homeTitle }}@endif<br><em>{{ $homeMember?->full_name ?: auth()->user()->name }}!</em></h1>
                         <p class="hero-copy">Your administrator assigns the next learning step. Keep your progress clear and request more time whenever you need it.</p>
                     </div>
                     <div class="hero-orbit" aria-hidden="true">

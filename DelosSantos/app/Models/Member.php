@@ -65,6 +65,11 @@ class Member extends Model
         return $this->hasOne(User::class);
     }
 
+    public function invitations(): HasMany
+    {
+        return $this->hasMany(MemberInvitation::class);
+    }
+
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);

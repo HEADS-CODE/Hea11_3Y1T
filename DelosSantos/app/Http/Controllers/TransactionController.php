@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AuditLog;
 use App\Models\Member;
 use App\Models\MembershipTransaction;
+use App\Models\User;
 use App\Services\MembershipTransactionService;
 use App\Notifications\PortalNotification;
 use Illuminate\Http\RedirectResponse;
@@ -66,7 +67,8 @@ class TransactionController extends Controller
 
         $transaction = $member->transactions()->latest()->first();
 
-        return redirect()->route('member.payment', $transaction);
+        return redirect()->route('member.payment', $transaction)
+            ->with('success', 'Your level-change request was created. Choose a payment method to continue.');
     }
 
     public function showLevelChange(Request $request): View
@@ -116,6 +118,8 @@ class TransactionController extends Controller
     public function approve(MembershipTransaction $transaction): RedirectResponse
     {
         abort_unless($transaction->member, 404);
+        $transaction->loadMissing('member.user');
+        $isInitialApplication = $transaction->type === MembershipTransaction::TYPE_APPLICATION;
 
         try {
             DB::transaction(function () use ($transaction): void {
@@ -138,6 +142,11 @@ class TransactionController extends Controller
             });
         } catch (\Illuminate\Validation\ValidationException $exception) {
             return back()->withErrors($exception->errors());
+        }
+
+        if ($isInitialApplication) {
+            return redirect()->route('admin.approvals.index')
+                ->with('success', 'Initial application payment approved. Review the member account approval next.');
         }
 
         return back()->with('success', 'Paid transaction approved.');

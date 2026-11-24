@@ -32,8 +32,42 @@ document.addEventListener('DOMContentLoaded', () => {
         mobileMenuToggle.setAttribute('aria-expanded', String(Boolean(isOpen)));
     });
     mobileNav?.querySelectorAll('a').forEach((link) => link.addEventListener('click', closeMobileNav));
+    const navDropdowns = [...document.querySelectorAll('[data-nav-dropdown]')];
+    const closeNavDropdowns = () => {
+        navDropdowns.forEach((dropdown) => {
+            dropdown.classList.remove('is-open');
+            dropdown.querySelector('[data-nav-dropdown-toggle]')?.setAttribute('aria-expanded', 'false');
+            dropdown.querySelector('[data-nav-dropdown-menu]')?.setAttribute('hidden', '');
+        });
+    };
+    const toggleNavDropdown = (dropdown) => {
+        const toggle = dropdown.querySelector('[data-nav-dropdown-toggle]');
+        const menu = dropdown.querySelector('[data-nav-dropdown-menu]');
+        const shouldOpen = !dropdown.classList.contains('is-open');
+        closeNavDropdowns();
+        dropdown.classList.toggle('is-open', shouldOpen);
+        toggle?.setAttribute('aria-expanded', String(shouldOpen));
+        menu?.toggleAttribute('hidden', !shouldOpen);
+    };
+    navDropdowns.forEach((dropdown) => {
+        dropdown.querySelector('[data-nav-dropdown-toggle]')?.addEventListener('click', (event) => {
+            event.stopPropagation();
+            toggleNavDropdown(dropdown);
+        });
+        dropdown.querySelectorAll('[data-nav-dropdown-menu] a').forEach((link) => link.addEventListener('click', () => {
+            closeNavDropdowns();
+            closeMobileNav();
+        }));
+    });
+    window.closePuihahaNavDropdowns = closeNavDropdowns;
+    document.addEventListener('click', (event) => {
+        if (!event.target.closest('[data-nav-dropdown]')) closeNavDropdowns();
+    });
     document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape') closeMobileNav();
+        if (event.key === 'Escape') {
+            closeMobileNav();
+            closeNavDropdowns();
+        }
     });
 
     const description = document.querySelector('#description');
@@ -92,13 +126,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
 document.addEventListener('DOMContentLoaded', () => {
     const closeExtensionModal = (modal) => {
-        modal?.setAttribute('hidden', '');
+        if (!modal) return;
+        modal.classList.remove('is-open');
+        window.setTimeout(() => modal.setAttribute('hidden', ''), 180);
     };
 
     document.querySelectorAll('[data-extension-open]').forEach((button) => {
         button.addEventListener('click', () => {
             const modal = document.getElementById(button.dataset.extensionOpen);
             modal?.removeAttribute('hidden');
+            window.requestAnimationFrame(() => modal?.classList.add('is-open'));
             modal?.querySelector('input, textarea, button')?.focus();
         });
     });
@@ -309,6 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
     profileButton?.addEventListener('click', () => {
         const isHidden = profileMenu?.hasAttribute('hidden');
         closeNotificationPanel();
+        window.closePuihahaNavDropdowns?.();
         profileMenu?.toggleAttribute('hidden', !isHidden);
         profileButton.setAttribute('aria-expanded', String(Boolean(isHidden)));
     });
@@ -343,6 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
     notificationButton?.addEventListener('click', () => {
         const isHidden = notificationPanel?.hasAttribute('hidden');
         closeProfileMenu();
+        window.closePuihahaNavDropdowns?.();
         notificationPanel?.toggleAttribute('hidden', !isHidden);
         notificationButton.setAttribute('aria-expanded', String(Boolean(isHidden)));
         if (isHidden) loadNotifications();
@@ -362,9 +401,21 @@ document.addEventListener('DOMContentLoaded', () => {
     loadNotifications();
     if (notificationPanel) window.setInterval(loadNotifications, 60000);
     const signoutModal = document.querySelector('[data-signout-modal]');
-    document.querySelectorAll('[data-signout-trigger]').forEach((button) => button.addEventListener('click', () => signoutModal?.removeAttribute('hidden')));
-    document.querySelectorAll('[data-signout-cancel]').forEach((button) => button.addEventListener('click', () => signoutModal?.setAttribute('hidden', '')));
-    signoutModal?.addEventListener('click', (event) => { if (event.target === signoutModal) signoutModal.setAttribute('hidden', ''); });
+    const openSignoutModal = () => {
+        closeProfileMenu();
+        signoutModal?.removeAttribute('hidden');
+        window.requestAnimationFrame(() => signoutModal?.classList.add('is-open'));
+    };
+    const closeSignoutModal = () => {
+        signoutModal?.classList.remove('is-open');
+        window.setTimeout(() => signoutModal?.setAttribute('hidden', ''), 180);
+    };
+    document.querySelectorAll('[data-signout-trigger]').forEach((button) => button.addEventListener('click', openSignoutModal));
+    document.querySelectorAll('[data-signout-cancel]').forEach((button) => button.addEventListener('click', closeSignoutModal));
+    signoutModal?.addEventListener('click', (event) => { if (event.target === signoutModal) closeSignoutModal(); });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && signoutModal && !signoutModal.hasAttribute('hidden')) closeSignoutModal();
+    });
 
     document.querySelectorAll('[data-toast]').forEach((toast) => {
         let timeout;
@@ -419,7 +470,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }));
 
     document.querySelectorAll('.js-task-scroll').forEach((link) => link.addEventListener('click', (event) => {
-        const target = document.querySelector('#task-section');
+        const target = document.querySelector('#insights');
         if (!target || window.location.pathname !== new URL(link.href).pathname) return;
         event.preventDefault();
         const distance = target.getBoundingClientRect().top;
@@ -543,6 +594,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     workspace?.querySelectorAll('[data-task-search], [data-task-priority], [data-task-status]').forEach((field) => field.addEventListener(field.matches('input') ? 'input' : 'change', () => { currentPage = 1; applyTaskFilters(); }));
+    workspace?.querySelector('[data-task-filter-submit]')?.addEventListener('click', () => { currentPage = 1; applyTaskFilters(); });
     workspace?.querySelector('[data-task-filter-clear]')?.addEventListener('click', () => {
         workspace.querySelector('[data-task-search]').value = '';
         workspace.querySelector('[data-task-priority]').value = 'all';

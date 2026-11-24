@@ -151,7 +151,7 @@ test('member registration generates distinct seven-character membership numbers 
         'house_street' => '1 Test Street', 'barangay' => 'Test Barangay', 'city_municipality' => 'Test City',
         'province' => 'Test Province', 'zip_code' => '1000',
         'membership_category_id' => $category->id, 'membership_level_id' => $level->id,
-        'password' => 'Password123!', 'password_confirmation' => 'Password123!',
+        'password' => 'Password123!', 'password_confirmation' => 'Password123!', 'accepted' => '1',
     ];
 
     $this->post(route('register.member.submit'), $payload('first@example.test'))->assertRedirect();

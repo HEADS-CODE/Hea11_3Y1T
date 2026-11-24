@@ -36,15 +36,20 @@ class LoginController extends Controller
 
     public function logout(Request $request): RedirectResponse
     {
-        if ($request->user()) {
-            AuditLog::record('auth.logout', ['role' => $request->user()->role], null, $request->user());
+        $user = $request->user();
+        if ($user) {
+            AuditLog::record('auth.logout', ['role' => $user->role], null, $user);
+            // Invalidate the persistent remember-me credential as well as the session.
+            $user->forceFill(['remember_token' => null])->save();
         }
 
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('login.member')->with('success', 'You have been signed out.');
+        return redirect()->route('login.member')
+            ->withCookie(cookie()->forget(Auth::guard()->getRecallerName()))
+            ->with('success', 'You have been signed out.');
     }
 
     private function authenticate(Request $request, string $role): RedirectResponse
@@ -87,6 +92,6 @@ class LoginController extends Controller
             return redirect()->route('account.inactive');
         }
 
-        return redirect()->route($user->isAdmin() ? 'members.index' : 'tasks.index');
+        return redirect()->route($user->isAdmin() ? 'admin.dashboard' : 'tasks.index');
     }
 }

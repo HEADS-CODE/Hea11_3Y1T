@@ -16,7 +16,10 @@
     @endif
     <div class="weather-details" data-weather-details hidden>
         <strong data-weather-temperature>—</strong>
-        <div class="weather-reading"><span data-weather-place>—</span><span data-weather-description>—</span></div>
-        <span class="weather-meta" data-weather-meta>—</span>
+        <div class="weather-reading">
+            <span data-weather-place>—</span>
+            <span class="weather-meta" data-weather-meta>—</span>
+            <span class="weather-description" data-weather-description>—</span>
+        </div>
     </div>
 </section>

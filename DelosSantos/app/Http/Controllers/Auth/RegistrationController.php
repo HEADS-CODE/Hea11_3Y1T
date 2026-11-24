@@ -13,6 +13,7 @@ use App\Notifications\VerifyEmailNotification;
 use App\Notifications\PortalNotification;
 use App\Services\MembershipTransactionService;
 use App\Rules\PhilippinePhone;
+use App\Rules\MinimumAge;
 use App\Rules\ProjectPassword;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -44,7 +45,7 @@ class RegistrationController extends Controller
             'last_name' => ['required', 'string', 'max:100'],
             'email' => ['required', 'email', 'max:255', Rule::unique('members', 'email'), Rule::unique('users', 'email')->where(fn ($query) => $query->where('role', User::ROLE_MEMBER))],
             'phone' => ['nullable', 'string', 'max:30', new PhilippinePhone()],
-            'birth_date' => ['required', 'date', 'before_or_equal:today'],
+            'birth_date' => ['required', 'date', 'before_or_equal:today', $this->minimumAgeRule($request->input('membership_category_id'))],
             'gender' => ['required', Rule::in(config('membership.genders'))],
             'address' => ['nullable', 'string', 'max:500'],
             'unit_floor_building' => ['nullable', 'string', 'max:150'],
@@ -57,6 +58,7 @@ class RegistrationController extends Controller
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'membership_category_id' => ['required', Rule::exists('membership_categories', 'id')->where(fn ($query) => $query->where('is_active', true))],
             'membership_level_id' => ['required', Rule::exists('membership_levels', 'id')->where(fn ($query) => $query->where('is_active', true))],
+            'accepted' => ['accepted'],
             'password' => ProjectPassword::rules(),
         ]);
 
@@ -119,7 +121,7 @@ class RegistrationController extends Controller
             'last_name' => ['required', 'string', 'max:100'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->where(fn ($query) => $query->where('role', User::ROLE_ADMIN))],
             'phone' => ['required', 'string', 'max:30', new PhilippinePhone()],
-            'birth_date' => ['required', 'date', 'before_or_equal:today'],
+            'birth_date' => ['required', 'date', 'before_or_equal:today', new MinimumAge(18, 'You must be at least 18 years old to register as an administrator.')],
             'gender' => ['required', Rule::in(config('membership.genders'))],
             'address' => ['nullable', 'string', 'max:500'],
             'unit_floor_building' => ['nullable', 'string', 'max:150'],
@@ -130,6 +132,7 @@ class RegistrationController extends Controller
             'zip_code' => ['required', 'digits:4'],
             'latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'accepted' => ['accepted'],
             'password' => ProjectPassword::rules(),
         ]);
 
@@ -177,5 +180,18 @@ class RegistrationController extends Controller
         } while (Member::where('membership_number', $number)->exists());
 
         return $number;
+    }
+
+    private function minimumAgeRule(mixed $categoryId): MinimumAge
+    {
+        $categoryName = $categoryId ? MembershipCategory::whereKey($categoryId)->value('name') : null;
+        $isSeniorCitizen = is_string($categoryName) && strcasecmp(trim($categoryName), 'Senior Citizen') === 0;
+
+        return new MinimumAge(
+            $isSeniorCitizen ? 60 : 18,
+            $isSeniorCitizen
+                ? 'You must be at least 60 years old for the Senior Citizen category.'
+                : 'You must be at least 18 years old to register.',
+        );
     }
 }
