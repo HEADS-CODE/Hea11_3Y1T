@@ -15,6 +15,7 @@ use App\Notifications\VerifyEmailNotification;
 use App\Rules\PhilippinePhone;
 use App\Rules\MinimumAge;
 use App\Services\MembershipTransactionService;
+use App\Services\MemberIdentityDeletionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Response;
 use Illuminate\Http\Request;
@@ -212,35 +213,14 @@ class MemberController extends Controller
         return redirect()->route('members.show', $member)->with('success', 'Member details updated.');
     }
 
-    public function destroy(Member $member): RedirectResponse
+    public function destroy(Member $member, MemberIdentityDeletionService $identityDeletion): RedirectResponse
     {
         if (trim((string) request()->input('confirm_name')) !== $member->full_name) {
             return back()->withErrors(['confirm_name' => 'Type the member’s full name exactly to confirm permanent deletion.']);
         }
 
-        DB::transaction(function () use ($member): void {
-            $transactions = $member->transactions()->get();
-            $documents = $member->documents()->get();
-            $user = $member->user;
-
-            AuditLog::record('member.deleted', [
-                'member_id' => $member->id,
-                'membership_number' => $member->membership_number,
-                'transaction_count_preserved' => $transactions->count(),
-                'document_count_removed' => $documents->count(),
-            ], $member, auth()->user());
-
-            foreach ($documents as $document) {
-                Storage::disk('member_private')->delete($document->storage_path);
-            }
-
-            // Financial history is retained, but no longer points to the deleted profile.
-            $member->transactions()->update(['member_id' => null]);
-            $member->requests()->delete();
-            $member->tasks()->delete();
-            $user?->notifications()->delete();
-            $user?->delete();
-            $member->delete();
+        DB::transaction(function () use ($member, $identityDeletion): void {
+            $identityDeletion->delete($member, auth()->user());
         });
 
         return redirect()->route('members.index')->with('success', 'Member profile and login were permanently deleted. Financial transaction history and payments were preserved for administrators.');
@@ -282,7 +262,7 @@ class MemberController extends Controller
         $isSeniorCitizen = is_string($categoryName) && strcasecmp(trim($categoryName), 'Senior Citizen') === 0;
         $birthDateRequired = $member === null || $isSeniorCitizen;
 
-        return $request->validate([
+        $validated = $request->validate([
             'first_name' => ['required', 'string', 'max:100'],
             'middle_name' => ['nullable', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],
@@ -318,6 +298,10 @@ class MemberController extends Controller
             'status' => ['required', Rule::in(['pending', 'active', 'inactive'])],
             'joined_at' => ['required', 'date'],
         ]);
+
+        $validated['email'] = strtolower(trim($validated['email']));
+
+        return $validated;
     }
 
     private function generateMembershipNumber(): string

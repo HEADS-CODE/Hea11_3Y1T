@@ -152,7 +152,7 @@ test('an invited unpaid member can reset the invitation password and continue to
     Notification::fake();
 
     $this->post(route('password.email.member'), [
-        'email' => $user->email,
+        'email' => strtoupper($user->email),
     ])->assertRedirect()
         ->assertSessionHas('success', 'If that account exists for this role, a reset link has been sent.');
 

@@ -66,6 +66,14 @@ class LoginController extends Controller
             return back()->withErrors(['email' => 'The provided credentials are incorrect.'])->onlyInput('email');
         }
 
+        if (! $this->hasEligibleAccount($credentials['email'], $role)) {
+            RateLimiter::hit($throttleKey, 60);
+
+            return back()
+                ->withErrors(['email' => 'We couldn’t sign you in. If you do not have an active account, please register.'])
+                ->onlyInput('email');
+        }
+
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
             RateLimiter::hit($throttleKey, 60);
 
@@ -93,5 +101,21 @@ class LoginController extends Controller
         }
 
         return redirect()->route($user->isAdmin() ? 'admin.dashboard' : 'tasks.index');
+    }
+
+    private function hasEligibleAccount(string $email, string $role): bool
+    {
+        return User::query()
+            ->whereRaw('LOWER(email) = ?', [Str::lower(trim($email))])
+            ->where('role', $role)
+            ->whereIn('status', [User::STATUS_ACTIVE, User::STATUS_PENDING])
+            ->when($role === User::ROLE_MEMBER, function ($query): void {
+                $query->whereHas('member', function ($memberQuery): void {
+                    $memberQuery
+                        ->whereIn('status', ['active', 'pending', 'inactive'])
+                        ->whereNull('archived_at');
+                });
+            })
+            ->exists();
     }
 }

@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Notifications\VerifyEmailNotification;
 use App\Notifications\PortalNotification;
 use App\Services\MembershipTransactionService;
+use App\Services\MemberIdentityDeletionService;
 use App\Rules\PhilippinePhone;
 use App\Rules\MinimumAge;
 use App\Rules\ProjectPassword;
@@ -39,11 +40,20 @@ class RegistrationController extends Controller
 
     public function registerMember(Request $request): RedirectResponse
     {
+        $releasableMember = app(MemberIdentityDeletionService::class)->findReleasableByEmail((string) $request->input('email'));
+        $memberEmailRule = Rule::unique('members', 'email');
+        $userEmailRule = Rule::unique('users', 'email')->where(fn ($query) => $query->where('role', User::ROLE_MEMBER));
+
+        if ($releasableMember) {
+            $memberEmailRule->ignore($releasableMember->id);
+            $userEmailRule->ignore($releasableMember->user?->id);
+        }
+
         $validated = $request->validate([
             'first_name' => ['required', 'string', 'max:100'],
             'middle_name' => ['nullable', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('members', 'email'), Rule::unique('users', 'email')->where(fn ($query) => $query->where('role', User::ROLE_MEMBER))],
+            'email' => ['required', 'email', 'max:255', $memberEmailRule, $userEmailRule],
             'phone' => ['nullable', 'string', 'max:30', new PhilippinePhone()],
             'birth_date' => ['required', 'date', 'before_or_equal:today', $this->minimumAgeRule($request->input('membership_category_id'))],
             'gender' => ['required', Rule::in(config('membership.genders'))],
@@ -62,7 +72,16 @@ class RegistrationController extends Controller
             'password' => ProjectPassword::rules(),
         ]);
 
-        DB::transaction(function () use ($validated): void {
+        DB::transaction(function () use ($validated, $releasableMember): void {
+            if ($releasableMember) {
+                app(MemberIdentityDeletionService::class)->delete(
+                    $releasableMember,
+                    null,
+                    'member.identity_deleted_before_reregistration',
+                    ['reason' => 'reregistration_after_cancelled_application'],
+                );
+            }
+
             $member = Member::create([
                 'membership_number' => $this->generateMembershipNumber(),
                 'first_name' => $validated['first_name'],

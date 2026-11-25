@@ -7,6 +7,7 @@ use App\Models\Member;
 use App\Models\MembershipTransaction;
 use App\Models\User;
 use App\Services\MembershipTransactionService;
+use App\Services\MemberIdentityDeletionService;
 use App\Notifications\PortalNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -165,10 +166,19 @@ class TransactionController extends Controller
         $member = $transaction->member;
         $user = $member->user;
         $isPendingApplication = $transaction->type === MembershipTransaction::TYPE_APPLICATION
-            && $user?->status === User::STATUS_PENDING;
+            && $user?->status === User::STATUS_PENDING
+            && $member->status === 'pending';
+        $hasPaidHistory = $member->transactions()
+            ->where(function ($query): void {
+                $query->where('status', MembershipTransaction::STATUS_APPROVED)
+                    ->orWhereHas('payment', fn ($paymentQuery) => $paymentQuery->where('status', 'paid'));
+            })
+            ->exists();
+        $releaseIdentity = $isPendingApplication && ! $hasPaidHistory;
         $cancelledAt = now();
+        $identityDeleted = false;
 
-        DB::transaction(function () use ($transaction, $member, $user, $validated, $isPendingApplication, $cancelledAt): void {
+        DB::transaction(function () use ($transaction, $member, $user, $validated, $isPendingApplication, $releaseIdentity, $cancelledAt, &$identityDeleted): void {
             $transaction->update([
                 'status' => MembershipTransaction::STATUS_CANCELLED,
                 'cancel_reason' => $validated['cancel_reason'],
@@ -180,7 +190,15 @@ class TransactionController extends Controller
                 'application_rejected' => $isPendingApplication,
             ], $transaction, auth()->user());
 
-            if ($isPendingApplication && $user) {
+            if ($isPendingApplication && $releaseIdentity) {
+                app(MemberIdentityDeletionService::class)->delete(
+                    $member,
+                    auth()->user(),
+                    'member.identity_deleted_after_application_cancellation',
+                    ['reason' => 'unpaid_initial_application_cancelled'],
+                );
+                $identityDeleted = true;
+            } elseif ($isPendingApplication && $user) {
                 $user->forceFill([
                     'status' => User::STATUS_REJECTED,
                     'approved_by_user_id' => auth()->id(),
@@ -196,18 +214,22 @@ class TransactionController extends Controller
             }
         });
 
-        $message = $isPendingApplication
-            ? 'Your membership application transaction '.$transaction->reference_number.' was cancelled, and your application was automatically rejected. You do not need to wait for another approval decision. Reason: '.$validated['cancel_reason']
-            : 'Your transaction '.$transaction->reference_number.' was cancelled. Reason: '.$validated['cancel_reason'];
-        $user?->notify(new PortalNotification(
-            $isPendingApplication ? 'Membership application rejected' : 'Transaction cancelled',
-            $message,
-            $isPendingApplication ? route('login.member') : route('member.transactions'),
-        ));
+        if (! $identityDeleted && $user?->exists) {
+            $message = $isPendingApplication
+                ? 'Your membership application transaction '.$transaction->reference_number.' was cancelled, and your application was automatically rejected. You do not need to wait for another approval decision. Reason: '.$validated['cancel_reason']
+                : 'Your transaction '.$transaction->reference_number.' was cancelled. Reason: '.$validated['cancel_reason'];
+            $user->notify(new PortalNotification(
+                $isPendingApplication ? 'Membership application rejected' : 'Transaction cancelled',
+                $message,
+                $isPendingApplication ? route('login.member') : route('member.transactions'),
+            ));
+        }
 
-        return back()->with('success', $isPendingApplication
-            ? 'Transaction cancelled. The member application was automatically rejected.'
-            : 'Transaction cancelled.');
+        return back()->with('success', $identityDeleted
+            ? 'Transaction cancelled. The unpaid pending member account was permanently deleted, and its email is available for a new registration.'
+            : ($isPendingApplication
+                ? 'Transaction cancelled. The member application was automatically rejected.'
+                : 'Transaction cancelled.'));
     }
 
     public function receipt(MembershipTransaction $transaction): View

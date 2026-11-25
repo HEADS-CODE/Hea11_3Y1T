@@ -7,6 +7,7 @@ use Illuminate\Auth\EloquentUserProvider;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Hashing\Hasher;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Str;
 
 class RoleAwareUserProvider extends EloquentUserProvider
 {
@@ -54,6 +55,11 @@ class RoleAwareUserProvider extends EloquentUserProvider
             }
 
             if (is_array($value) || $value instanceof \Closure) {
+                continue;
+            }
+
+            if ($key === 'email') {
+                $query->whereRaw('LOWER(email) = ?', [Str::lower(trim((string) $value))]);
                 continue;
             }
 

@@ -634,7 +634,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }));
 
-    const closeTransactionModals = () => document.querySelectorAll('[data-cancel-modal], [data-reason-modal]').forEach((modal) => modal.setAttribute('hidden', ''));
+    const closeTransactionModals = () => document.querySelectorAll('[data-cancel-modal], [data-reason-modal]').forEach((modal) => {
+        modal.classList.remove('is-open');
+        window.setTimeout(() => modal.setAttribute('hidden', ''), 180);
+    });
     document.querySelectorAll('[data-cancel-trigger]').forEach((button) => button.addEventListener('click', () => {
         const modal = document.querySelector('[data-cancel-modal]');
         const form = modal?.querySelector('[data-cancel-modal-form]');
@@ -643,6 +646,7 @@ document.addEventListener('DOMContentLoaded', () => {
         form.action = button.dataset.cancelAction;
         form.reset();
         modal.removeAttribute('hidden');
+        window.requestAnimationFrame(() => modal.classList.add('is-open'));
         window.setTimeout(() => reason?.focus(), 0);
     }));
     document.querySelectorAll('[data-reason-trigger]').forEach((button) => button.addEventListener('click', () => {
@@ -651,6 +655,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!modal || !text) return;
         text.textContent = button.dataset.reason || 'No reason was recorded.';
         modal.removeAttribute('hidden');
+        window.requestAnimationFrame(() => modal.classList.add('is-open'));
     }));
     document.querySelectorAll('[data-modal-close]').forEach((button) => button.addEventListener('click', closeTransactionModals));
     document.querySelectorAll('[data-cancel-modal], [data-reason-modal]').forEach((modal) => modal.addEventListener('click', (event) => {
