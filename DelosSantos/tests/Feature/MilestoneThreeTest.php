@@ -129,6 +129,25 @@ test('member and administrator password resets remain isolated for the same emai
         ->and(Hash::check('MemberNew123', $memberUser->fresh()->password))->toBeTrue();
 });
 
+test('the member reset form completes an end-to-end password reset', function () {
+    $member = makePendingMemberForAuthTests('reset-form@example.test');
+    $member->forceFill(['status' => 'active'])->save();
+    $memberUser = User::factory()->member($member)->create(['email' => $member->email]);
+    $memberUser->forceFill(['email_verified_at' => now()])->save();
+
+    $token = Password::broker('members')->createToken($memberUser);
+
+    $response = $this->post(route('password.reset.member'), [
+        'email' => $memberUser->email,
+        'password' => 'MemberReset123!',
+        'password_confirmation' => 'MemberReset123!',
+        'token' => $token,
+    ]);
+
+    $response->assertRedirect(route('login.member'));
+    expect(Hash::check('MemberReset123!', $memberUser->fresh()->password))->toBeTrue();
+});
+
 test('password reset notifications contain the correct role in their URLs', function () {
     Notification::fake();
     $member = makePendingMemberForAuthTests('reset-url@example.test');

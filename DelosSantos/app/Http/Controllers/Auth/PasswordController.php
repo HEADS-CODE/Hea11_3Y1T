@@ -58,6 +58,7 @@ class PasswordController extends Controller
             'token' => ['required', 'string'],
             'email' => ['required', 'email'],
             'password' => ProjectPassword::rules(),
+            'password_confirmation' => ['required', 'same:password'],
         ]);
         $throttleKey = Str::lower($validated['email']).'|'.$request->ip().'|'.$role.'|reset-submit';
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
