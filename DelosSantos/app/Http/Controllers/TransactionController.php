@@ -161,13 +161,47 @@ class TransactionController extends Controller
         }
 
         $validated = $request->validate(['cancel_reason' => ['required', 'string', 'max:500']]);
-        $transaction->update([
-            'status' => MembershipTransaction::STATUS_CANCELLED,
-            'cancel_reason' => $validated['cancel_reason'],
-            'notes' => $transaction->payment ? trim(implode(' ', array_filter([$transaction->notes, 'Needs refund review.']))) : $transaction->notes,
-        ]);
-        AuditLog::record('transaction.cancelled', ['reference' => $transaction->reference_number], $transaction, auth()->user());
-        $transaction->member->user?->notify(new PortalNotification('Transaction cancelled', 'Your transaction '.$transaction->reference_number.' was cancelled.'.$transaction->cancel_reason, route('member.transactions')));
+
+        $member = $transaction->member;
+        $user = $member->user;
+        $isPendingApplication = $transaction->type === MembershipTransaction::TYPE_APPLICATION
+            && $user?->status === User::STATUS_PENDING;
+
+        DB::transaction(function () use ($transaction, $member, $user, $validated, $isPendingApplication): void {
+            $transaction->update([
+                'status' => MembershipTransaction::STATUS_CANCELLED,
+                'cancel_reason' => $validated['cancel_reason'],
+                'notes' => $transaction->payment ? trim(implode(' ', array_filter([$transaction->notes, 'Needs refund review.']))) : $transaction->notes,
+            ]);
+            AuditLog::record('transaction.cancelled', [
+                'reference' => $transaction->reference_number,
+                'application_rejected' => $isPendingApplication,
+            ], $transaction, auth()->user());
+
+            if ($isPendingApplication && $user) {
+                $user->forceFill([
+                    'status' => User::STATUS_REJECTED,
+                    'approved_by_user_id' => auth()->id(),
+                    'approved_at' => null,
+                ])->save();
+                $member->update(['status' => 'inactive']);
+
+                AuditLog::record('account.rejected', [
+                    'role' => $user->role,
+                    'reason' => 'initial_application_transaction_cancelled',
+                    'transaction_reference' => $transaction->reference_number,
+                ], $user, auth()->user());
+            }
+        });
+
+        $message = $isPendingApplication
+            ? 'Your membership application transaction '.$transaction->reference_number.' was cancelled, and your application was automatically rejected. You do not need to wait for another approval decision. Reason: '.$validated['cancel_reason']
+            : 'Your transaction '.$transaction->reference_number.' was cancelled. Reason: '.$validated['cancel_reason'];
+        $user?->notify(new PortalNotification(
+            $isPendingApplication ? 'Membership application rejected' : 'Transaction cancelled',
+            $message,
+            $isPendingApplication ? route('login.member') : route('member.transactions'),
+        ));
 
         return back()->with('success', 'Transaction cancelled.');
     }

@@ -60,6 +60,6 @@ class MemberInvitationController extends Controller
         }
 
         return redirect()->route('login.member')
-            ->with('success', 'Invitation accepted. Sign in, complete payment, and wait for administrator approval.');
+            ->with('success', 'Invitation accepted. Sign in using your new member account to complete the membership payment, then wait for administrator approval.');
     }
 }

@@ -31,6 +31,6 @@ class MemberInvitationNotification extends Notification implements ShouldQueue
             ->line('Use the secure one-time invitation below to set your password and confirm your email address.')
             ->action('Set password and confirm email', $this->invitationUrl)
             ->line('This invitation expires in 24 hours and can only be used once.')
-            ->line('After accepting, complete the membership payment so an administrator can approve your portal access.');
+            ->line('After accepting, sign in using your new member account to complete the membership payment, then wait for an administrator to approve your portal access.');
     }
 }

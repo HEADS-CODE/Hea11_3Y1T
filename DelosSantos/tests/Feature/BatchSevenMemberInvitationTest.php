@@ -88,7 +88,7 @@ test('a valid member invitation sets the password and confirms the invited email
         'password' => 'ValidPassword123!',
         'password_confirmation' => 'ValidPassword123!',
     ])->assertRedirect(route('login.member'))
-        ->assertSessionHas('success', 'Invitation accepted. Sign in, complete payment, and wait for administrator approval.');
+        ->assertSessionHas('success', 'Invitation accepted. Sign in using your new member account to complete the membership payment, then wait for administrator approval.');
 
     expect(Hash::check('ValidPassword123!', $user->fresh()->password))->toBeTrue()
         ->and($user->fresh()->email_verified_at)->not->toBeNull()

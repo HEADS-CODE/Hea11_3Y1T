@@ -106,7 +106,7 @@ class RegistrationController extends Controller
 
             $token = EmailVerificationToken::issueFor($user);
             DB::afterCommit(fn () => $user->notify(new VerifyEmailNotification($token)));
-            DB::afterCommit(fn () => $user->notify(new PortalNotification('Welcome to Puihaha', 'Your member registration was received. Confirm your email, then complete payment when prompted.', route('approval.pending'))));
+            DB::afterCommit(fn () => $user->notify(new PortalNotification('Welcome to Puihaha', 'Your member registration was received. Confirm your email, then sign in using your new member account to complete the membership payment when prompted.', route('approval.pending'))));
             DB::afterCommit(fn () => User::where('role', User::ROLE_ADMIN)->where('status', User::STATUS_ACTIVE)->get()->each(fn (User $admin) => $admin->notify(new PortalNotification('New member registration', $member->full_name.' submitted a membership application.', route('admin.approvals.index')))));
         });
 
