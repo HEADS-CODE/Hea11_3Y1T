@@ -651,10 +651,10 @@ html.dark-mode .task-filter-bar input, html.dark-mode .task-filter-bar select { 
 .puihaha-pagination .pagination-page.is-current { border-color: #7650a9; background: #7650a9; color: #fff; }
 .puihaha-pagination .pagination-arrow:hover, .puihaha-pagination .pagination-page:hover { border-color: #7650a9; background: #f5effb; }
 .puihaha-pagination .is-disabled { cursor: not-allowed; opacity: .4; }
-.audit-details { display: grid; gap: 4px; margin: 0; min-width: 190px; }
-.audit-details div { display: grid; grid-template-columns: minmax(80px, .45fr) 1fr; gap: 8px; }
-.audit-details dt { color: #7650a9; font-family: 'DM Mono', monospace; font-size: .58rem; }
-.audit-details dd { margin: 0; overflow-wrap: anywhere; color: #635a70; font-size: .68rem; }
+.audit-details { display: grid; gap: 8px; margin: 0; min-width: 0; }
+.audit-details .audit-detail-row { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 12px; align-items: start; min-width: 0; }
+.audit-details dt { min-width: 0; overflow-wrap: anywhere; color: #7650a9; font-family: 'DM Mono', monospace; font-size: .58rem; line-height: 1.35; }
+.audit-details dd { min-width: 0; margin: 0; overflow-wrap: anywhere; word-break: break-word; color: #635a70; font-size: .68rem; line-height: 1.35; }
 .print-report-header { display: none; }
 .weather-card { margin-bottom: 34px; }
 html.dark-mode .selected-level-benefits, .dark-mode .selected-level-benefits { border-color: #4a3b61; background: linear-gradient(135deg, #2a203d, #211a31); }
@@ -803,8 +803,33 @@ html.dark-mode .auth-terms-check { color: #c5b8d0; }
 .admin-task-filters > input[type=\"search\"] { min-width: 260px; flex: 1 1 360px; }
 .payment-channel-stack { display: grid; justify-items: start; gap: 5px; }
 .payment-channel-stack .member-email { margin-top: 0; }
+.admin-transactions-panel .members-table { table-layout: fixed; }
+.admin-transactions-panel .transaction-reference-column { width: 17%; }
+.admin-transactions-panel .transaction-member-column { width: 23%; }
+.admin-transactions-panel .transaction-type-column { width: 12%; }
+.admin-transactions-panel .transaction-amount-column { width: 8%; }
+.admin-transactions-panel .transaction-payment-column { width: 16%; }
+.admin-transactions-panel .transaction-status-column { width: 11%; }
+.admin-transactions-panel .transaction-actions-column { width: 13%; }
+.admin-transactions-panel .members-table th, .admin-transactions-panel .members-table td { padding-right: 16px; padding-left: 16px; }
+.admin-transactions-panel .members-table td { white-space: normal; overflow-wrap: anywhere; }
+.admin-transactions-panel .membership-number, .admin-transactions-panel .member-email { overflow-wrap: anywhere; }
+.admin-transactions-panel .payment-channel-cell, .admin-transactions-panel .actions-cell { vertical-align: top; }
+.admin-transactions-panel .payment-channel-message { line-height: 1.35; }
+.admin-transactions-panel .row-actions { align-items: flex-start; flex-direction: column; gap: 6px; }
+.admin-transactions-panel .row-actions a, .admin-transactions-panel .row-actions button { max-width: 100%; white-space: normal; text-align: left; }
 .admin-activity-page .members-table td, .audit-details dd { font-size: .8rem; }
 .admin-activity-page .membership-number { font-size: .74rem; }
+.admin-activity-panel .members-table { table-layout: fixed; }
+.admin-activity-panel .activity-when-column { width: 13%; }
+.admin-activity-panel .activity-actor-column { width: 24%; }
+.admin-activity-panel .activity-role-column { width: 9%; }
+.admin-activity-panel .activity-action-column { width: 21%; }
+.admin-activity-panel .activity-details-column { width: 33%; }
+.admin-activity-panel .members-table th, .admin-activity-panel .members-table td { padding-right: 16px; padding-left: 16px; }
+.admin-activity-panel .members-table td { vertical-align: top; white-space: normal; overflow-wrap: anywhere; }
+.admin-activity-panel .audit-details { width: 100%; }
+.admin-activity-panel .audit-details .audit-detail-row { grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); }
 .level-card { display: flex; min-height: 300px; flex-direction: column; }
 .level-card p { display: -webkit-box; min-height: 0; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 4; }
 .level-card .button, .level-card .field-hint { margin-top: auto; }
