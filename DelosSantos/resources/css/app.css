@@ -1146,3 +1146,255 @@ html.dark-mode .weather-reading .weather-description, .dark-mode .weather-readin
     .weather-reading .weather-meta { font-size: .78rem; line-height: 1.45; }
     .weather-reading .weather-description { font-size: .98rem; }
 }
+
+/* Responsive audit and transaction tables: preserve readable columns and scroll the table itself on phones. */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.toast-region {
+    left: 50%;
+    right: auto;
+    width: min(600px, calc(100% - 32px));
+    transform: translateX(-50%);
+}
+
+.modal-backdrop {
+    overflow-y: auto;
+}
+
+.modal-backdrop .confirm-modal {
+    max-height: min(calc(100dvh - 32px), 760px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.password-wrap > .password-toggle {
+    position: absolute !important;
+    top: 50% !important;
+    right: .9rem !important;
+    bottom: auto !important;
+    transform: translateY(-50%) !important;
+}
+
+/* The home layout uses a separate shell; its overflow-hidden ancestor prevented sticky navigation. */
+.page-shell {
+    overflow: visible;
+}
+
+.tasks-page,
+.tasks-page .content-wrap,
+.tasks-page .workspace-grid,
+.tasks-page .workspace-grid > .panel,
+.task-workspace-shell,
+.task-workspace-shell > .panel {
+    min-width: 0;
+    max-width: 100%;
+}
+
+@media (max-width: 767px) {
+    body.tasks-page {
+        overflow-x: hidden;
+    }
+
+    .platform-page .toast-region,
+    .tasks-page .toast-region {
+        top: 78px;
+        left: 50%;
+        right: auto;
+        width: calc(100% - 24px);
+        transform: translateX(-50%);
+    }
+
+    .admin-activity-filters {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: stretch;
+        gap: 10px;
+        padding: 12px;
+    }
+
+    .admin-activity-filters .search-wrap,
+    .admin-activity-filters > button {
+        grid-column: 1 / -1;
+    }
+
+    .admin-activity-filters .search-wrap {
+        min-width: 0;
+        padding: 0 0 10px;
+        border-bottom: 1px solid #eee8f4;
+    }
+
+    .admin-activity-filters input,
+    .admin-activity-filters select,
+    .admin-activity-filters > button {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .admin-activity-panel .table-scroll,
+    .admin-transactions-panel .table-scroll {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .admin-activity-panel .members-table,
+    .admin-transactions-panel .members-table {
+        width: max-content;
+        min-width: 1100px;
+        table-layout: auto;
+    }
+
+    .admin-activity-panel .members-table th,
+    .admin-activity-panel .members-table td,
+    .admin-transactions-panel .members-table th,
+    .admin-transactions-panel .members-table td {
+        white-space: nowrap;
+        overflow-wrap: normal;
+        word-break: normal;
+    }
+
+    .admin-activity-panel .audit-details,
+    .admin-activity-panel .audit-details dt,
+    .admin-activity-panel .audit-details dd,
+    .admin-activity-panel .members-table .member-email {
+        white-space: normal;
+    }
+
+    .admin-activity-panel .audit-details {
+        min-width: 300px;
+    }
+
+    .admin-activity-panel .audit-details .audit-detail-row {
+        min-width: 290px;
+    }
+
+    .admin-activity-panel .activity-when-column { width: 190px; }
+    .admin-activity-panel .activity-actor-column { width: 260px; }
+    .admin-activity-panel .activity-role-column { width: 105px; }
+    .admin-activity-panel .activity-action-column { width: 255px; }
+    .admin-activity-panel .activity-details-column { width: 410px; }
+
+    .admin-transactions-panel .transaction-reference-column { width: 210px; }
+    .admin-transactions-panel .transaction-member-column { width: 285px; }
+    .admin-transactions-panel .transaction-type-column { width: 160px; }
+    .admin-transactions-panel .transaction-amount-column { width: 115px; }
+    .admin-transactions-panel .transaction-payment-column { width: 245px; }
+    .admin-transactions-panel .transaction-status-column { width: 145px; }
+    .admin-transactions-panel .transaction-actions-column { width: 190px; }
+
+    .admin-transactions-panel .payment-channel-message {
+        display: inline-block;
+        min-width: 125px;
+        white-space: normal;
+    }
+
+    .admin-transactions-panel .row-actions {
+        align-items: center;
+        flex-direction: row;
+        gap: 11px;
+        white-space: nowrap;
+    }
+
+    .admin-transactions-panel .row-actions a,
+    .admin-transactions-panel .row-actions button {
+        white-space: nowrap;
+    }
+
+    .modal-backdrop {
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+    }
+
+    .modal-backdrop .confirm-modal {
+        width: min(100%, 540px);
+        max-height: calc(100dvh - 32px);
+        margin: 0 auto;
+    }
+
+    .tasks-page .task-guidance-list,
+    .tasks-page .task-guidance-list > div,
+    .tasks-page .task-guidance-list p,
+    .tasks-page .task-list,
+    .tasks-page .task-item,
+    .tasks-page .task-content,
+    .tasks-page .task-title-row {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .tasks-page .task-guidance-list > div {
+        overflow-wrap: anywhere;
+    }
+
+    .tasks-page .task-guidance-list p,
+    .tasks-page .task-content p {
+        overflow-wrap: anywhere;
+        white-space: normal;
+    }
+
+    .tasks-page .task-title-row {
+        align-items: flex-start;
+    }
+
+    .tasks-page .task-title-row h3 {
+        min-width: 0;
+        overflow-wrap: anywhere;
+        white-space: normal;
+    }
+
+    .tasks-home .task-member-grid .list-panel .panel-heading > div {
+        min-width: 0;
+    }
+
+    .tasks-home .task-member-grid .list-panel .task-home-link {
+        max-width: 46%;
+        overflow-wrap: anywhere;
+        white-space: normal;
+    }
+}
+
+/* Keep every session-feedback toast at the viewport's top center, below the portal navigation. */
+.platform-page .toast-region,
+.tasks-page .toast-region {
+    top: 94px;
+    right: auto;
+    left: 50%;
+    width: min(600px, calc(100% - 32px));
+    transform: translateX(-50%);
+}
+
+.auth-page .toast-region {
+    right: auto;
+    left: 50%;
+    width: min(600px, calc(100% - 32px));
+    transform: translateX(-50%);
+}
+
+@media (max-width: 767px) {
+    .platform-page .toast-region,
+    .tasks-page .toast-region {
+        top: 78px;
+        right: auto;
+        left: 50%;
+        width: calc(100% - 24px);
+        transform: translateX(-50%);
+    }
+
+    .auth-page .toast-region {
+        top: 16px;
+        right: auto;
+        left: 50%;
+        width: calc(100% - 24px);
+        transform: translateX(-50%);
+    }
+}
