@@ -1361,6 +1361,15 @@ html.dark-mode .weather-reading .weather-description, .dark-mode .weather-readin
         overflow-wrap: anywhere;
         white-space: normal;
     }
+
+    .task-workspace-list {
+        padding-right: 52px !important;
+    }
+
+    .task-workspace-list .task-item {
+        width: calc(100% - 24px) !important;
+        padding-right: 28px;
+    }
 }
 
 /* Keep every session-feedback toast at the viewport's top center, below the portal navigation. */

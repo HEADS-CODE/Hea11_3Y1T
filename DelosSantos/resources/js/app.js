@@ -174,12 +174,13 @@ const validatePuihahaField = (field) => {
     const message = puihahaValidationMessage(field);
     field.classList.toggle('input-invalid', Boolean(message));
     field.setAttribute('aria-invalid', message ? 'true' : 'false');
-    let error = field.parentElement?.querySelector('[data-client-error]');
+    const fieldContainer = field.closest('.password-wrap')?.parentElement ?? field.parentElement;
+    let error = fieldContainer?.querySelector('[data-client-error]');
     if (!error && message) {
         error = document.createElement('span');
         error.className = 'field-error';
         error.dataset.clientError = 'true';
-        field.parentElement?.append(error);
+        fieldContainer?.append(error);
     }
     if (error) {
         error.textContent = message;
