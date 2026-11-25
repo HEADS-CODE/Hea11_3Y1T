@@ -8,6 +8,7 @@ use App\Models\MembershipLevel;
 use App\Models\MembershipTransaction;
 use App\Models\User;
 use App\Notifications\MemberInvitationNotification;
+use App\Notifications\RoleScopedResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
@@ -138,4 +139,51 @@ test('invitation tokens are not written to audit details or stored as plaintext'
 
     expect($details)->not->toContain($token)
         ->and(MemberInvitation::where('user_id', $user->id)->firstOrFail()->token_hash)->toBe(hash('sha256', $token));
+});
+
+test('an invited unpaid member can reset the invitation password and continue to payment', function () {
+    ['member' => $member, 'user' => $user, 'url' => $url] = createBatchSevenBInvitedMember($this, 'invited-reset@example.test');
+
+    $this->post($url, [
+        'password' => 'InitialPassword123!',
+        'password_confirmation' => 'InitialPassword123!',
+    ])->assertRedirect(route('login.member'));
+
+    Notification::fake();
+
+    $this->post(route('password.email.member'), [
+        'email' => $user->email,
+    ])->assertRedirect()
+        ->assertSessionHas('success', 'If that account exists for this role, a reset link has been sent.');
+
+    $resetUrl = null;
+    Notification::assertSentTo($user, RoleScopedResetPassword::class, function (RoleScopedResetPassword $notification) use ($user, &$resetUrl): bool {
+        $mail = $notification->toMail($user);
+        $resetUrl = $mail->actionUrl;
+
+        return str_contains($resetUrl, '/reset-password/member/');
+    });
+
+    $resetToken = basename((string) parse_url($resetUrl, PHP_URL_PATH));
+
+    $this->post(route('password.reset.member'), [
+        'email' => $user->email,
+        'password' => 'ResetPassword123!',
+        'password_confirmation' => 'ResetPassword123!',
+        'token' => $resetToken,
+    ])->assertRedirect(route('login.member'));
+
+    $this->post(route('login.member.submit'), [
+        'email' => $user->email,
+        'password' => 'ResetPassword123!',
+    ])->assertRedirect(route('approval.pending'));
+
+    $transaction = $member->transactions()->where('type', MembershipTransaction::TYPE_APPLICATION)->latest('id')->firstOrFail();
+
+    $this->get(route('member.payment', $transaction))
+        ->assertOk()
+        ->assertSee('Confirm payment choice');
+
+    expect($user->fresh()->status)->toBe(User::STATUS_PENDING)
+        ->and($member->fresh()->status)->toBe('pending');
 });
