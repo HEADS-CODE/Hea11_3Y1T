@@ -49,9 +49,10 @@ test('cancelling an unpaid initial application rejects the account and removes i
             'cancel_reason' => 'The applicant did not continue with the membership payment.',
         ])
         ->assertRedirect()
-        ->assertSessionHas('success', 'Transaction cancelled.');
+        ->assertSessionHas('success', 'Transaction cancelled. The member application was automatically rejected.');
 
     expect($transaction->fresh()->status)->toBe(MembershipTransaction::STATUS_CANCELLED)
+        ->and($transaction->fresh()->cancelled_at)->not->toBeNull()
         ->and($user->fresh()->status)->toBe(User::STATUS_REJECTED)
         ->and($member->fresh()->status)->toBe('inactive')
         ->and(User::where('status', User::STATUS_PENDING)->whereKey($user->id)->exists())->toBeFalse()
@@ -64,4 +65,17 @@ test('cancelling an unpaid initial application rejects the account and removes i
             && str_contains($data['message'], 'automatically rejected')
             && $data['url'] === route('login.member');
     });
+
+    $this->actingAs($admin)
+        ->get(route('admin.transactions.receipt', $transaction->fresh()))
+        ->assertOk()
+        ->assertSee('Transaction cancelled')
+        ->assertSee($transaction->reference_number)
+        ->assertSee($member->full_name)
+        ->assertSee($member->email)
+        ->assertSee($member->membership_number)
+        ->assertSee($category->name)
+        ->assertSee($level->name)
+        ->assertSee('Transaction date')
+        ->assertSee('Cancelled date');
 });

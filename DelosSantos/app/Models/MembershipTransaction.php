@@ -32,11 +32,12 @@ class MembershipTransaction extends Model
         'member_id', 'member_name_snapshot', 'member_email_snapshot', 'membership_number_snapshot', 'category_name_snapshot', 'level_name_snapshot',
         'membership_category_id', 'membership_level_id', 'reference_number', 'type', 'status', 'payment_channel', 'amount',
         'starts_at', 'ends_at', 'created_by_user_id', 'approved_by_user_id', 'approved_at', 'notes', 'cancel_reason',
+        'cancelled_at',
     ];
 
     protected function casts(): array
     {
-        return ['amount' => 'decimal:2', 'starts_at' => 'date', 'ends_at' => 'date', 'approved_at' => 'datetime'];
+        return ['amount' => 'decimal:2', 'starts_at' => 'date', 'ends_at' => 'date', 'approved_at' => 'datetime', 'cancelled_at' => 'datetime'];
     }
 
     public function member(): BelongsTo { return $this->belongsTo(Member::class); }

@@ -166,11 +166,13 @@ class TransactionController extends Controller
         $user = $member->user;
         $isPendingApplication = $transaction->type === MembershipTransaction::TYPE_APPLICATION
             && $user?->status === User::STATUS_PENDING;
+        $cancelledAt = now();
 
-        DB::transaction(function () use ($transaction, $member, $user, $validated, $isPendingApplication): void {
+        DB::transaction(function () use ($transaction, $member, $user, $validated, $isPendingApplication, $cancelledAt): void {
             $transaction->update([
                 'status' => MembershipTransaction::STATUS_CANCELLED,
                 'cancel_reason' => $validated['cancel_reason'],
+                'cancelled_at' => $cancelledAt,
                 'notes' => $transaction->payment ? trim(implode(' ', array_filter([$transaction->notes, 'Needs refund review.']))) : $transaction->notes,
             ]);
             AuditLog::record('transaction.cancelled', [
@@ -203,14 +205,20 @@ class TransactionController extends Controller
             $isPendingApplication ? route('login.member') : route('member.transactions'),
         ));
 
-        return back()->with('success', 'Transaction cancelled.');
+        return back()->with('success', $isPendingApplication
+            ? 'Transaction cancelled. The member application was automatically rejected.'
+            : 'Transaction cancelled.');
     }
 
     public function receipt(MembershipTransaction $transaction): View
     {
         abort_unless(auth()->user()->isAdmin() || auth()->user()->member_id === $transaction->member_id, 403);
         $transaction->load(['member', 'category', 'level', 'payment']);
-        abort_unless($transaction->payment && $transaction->payment->status === 'paid', 404);
+        abort_unless(
+            $transaction->status === MembershipTransaction::STATUS_CANCELLED
+                || ($transaction->payment && $transaction->payment->status === 'paid'),
+            404,
+        );
 
         return view('transactions.receipt', compact('transaction'));
     }
