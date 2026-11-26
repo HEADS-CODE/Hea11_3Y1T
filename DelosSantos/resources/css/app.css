@@ -1036,6 +1036,129 @@ html.dark-mode .request-documents li, .dark-mode .request-documents li { border-
     }
 }
 
+/* Final My Tasks mobile override: this block intentionally comes last so it
+ * wins over the earlier legacy workspace rules. */
+@media (max-width: 767px) {
+    .platform-page .task-workspace-list {
+        padding: 16px 10px 25px 24px !important;
+    }
+
+    .platform-page .task-workspace-list .task-item {
+        width: 100% !important;
+        max-width: 100%;
+        min-width: 0;
+        margin: 0;
+        padding: 16px;
+        box-sizing: border-box;
+    }
+}
+
+html.dark-mode .platform-page .task-workspace-list .task-item,
+.dark-mode .platform-page .task-workspace-list .task-item {
+    border-color: #4a3b61;
+    background: #211a31;
+    color: #f4effb;
+}
+
+html.dark-mode .platform-page .task-workspace-list .task-title-row h3,
+.dark-mode .platform-page .task-workspace-list .task-title-row h3 {
+    color: #f4effb;
+}
+
+html.dark-mode .platform-page .task-workspace-list .task-item.is-completed h3,
+.dark-mode .platform-page .task-workspace-list .task-item.is-completed h3 {
+    color: #c5b8d0;
+}
+
+html.dark-mode .platform-page .task-workspace-list .task-content p,
+.dark-mode .platform-page .task-workspace-list .task-content p {
+    color: #c5b8d0;
+}
+
+html.dark-mode .platform-page .task-workspace-list .task-date,
+.dark-mode .platform-page .task-workspace-list .task-date {
+    color: #b6a9c4;
+}
+
+html.dark-mode .platform-page .task-workspace-list .task-status,
+.dark-mode .platform-page .task-workspace-list .task-status {
+    background: #302343;
+    color: #d7baff;
+}
+
+html.dark-mode .platform-page .task-workspace-list .task-status-mark,
+.dark-mode .platform-page .task-workspace-list .task-status-mark {
+    border-color: #7f6d91;
+}
+
+html.dark-mode .platform-page .task-workspace-list .task-item.is-completed .task-status-mark,
+.dark-mode .platform-page .task-workspace-list .task-item.is-completed .task-status-mark {
+    border-color: #7650a9;
+    background: #7650a9;
+}
+
+/* Final mobile task-card containment: use a real one-column grid track so
+ * cards cannot inherit the desktop width calculation or run into the panel. */
+@media (max-width: 767px) {
+    .platform-page .task-list-workspace {
+        overflow: hidden;
+    }
+
+    .platform-page .task-workspace-list {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        padding: 16px 10px 25px 24px !important;
+    }
+
+    .platform-page .task-workspace-list .task-item {
+        width: 100% !important;
+        min-width: 0;
+        max-width: 100%;
+        margin: 0;
+        padding: 16px;
+        box-sizing: border-box;
+    }
+
+    .platform-page .task-workspace-list .task-content,
+    .platform-page .task-workspace-list .task-title-row,
+    .platform-page .task-workspace-list .task-meta-row {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .platform-page .task-workspace-list .task-title-row {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .platform-page .task-workspace-list .task-title-row h3 {
+        min-width: 0;
+        max-width: 100%;
+        flex: 1 1 100%;
+        overflow-wrap: anywhere;
+        white-space: normal;
+    }
+
+    .platform-page .task-workspace-list .task-badge-stack {
+        justify-content: flex-start;
+        max-width: 100%;
+    }
+
+    .platform-page .task-workspace-list .task-content p {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        white-space: normal;
+    }
+
+    .platform-page .task-workspace-list .task-meta-row {
+        gap: 5px 10px;
+        overflow-wrap: anywhere;
+    }
+}
+
 /* Batch 7D follow-up — mobile popovers, pagination, and balanced topbar spacing. */
 @media (max-width: 767px) {
     .platform-page .toast-region, .tasks-page .toast-region {
@@ -1070,6 +1193,57 @@ html.dark-mode .request-documents li, .dark-mode .request-documents li { border-
     .pagination-wrap { padding-right: 12px; padding-left: 12px; }
 }
 
+/* Keep the member My Tasks workspace inside the phone viewport. The older
+ * tasks-page shell rules do not apply to this platform-page layout. */
+@media (max-width: 767px) {
+    html,
+    body.platform-page {
+        max-width: 100%;
+        overflow-x: clip;
+    }
+
+    .platform-page .platform-shell,
+    .platform-page .task-workspace-shell,
+    .platform-page .task-list-workspace,
+    .platform-page .task-workspace-list {
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .platform-page .platform-shell {
+        overflow: visible;
+    }
+
+    .platform-page .platform-content {
+        width: min(calc(100% - 28px), 1240px);
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .platform-page .portal-topbar {
+        position: sticky !important;
+        top: 0;
+        z-index: 80;
+    }
+
+    .platform-page .task-list-workspace {
+        overflow: hidden;
+    }
+
+    .platform-page .task-workspace-list {
+        padding: 0 24px 25px !important;
+    }
+
+    .platform-page .task-workspace-list .task-item {
+        width: calc(100% - 24px) !important;
+        max-width: 100%;
+        margin-right: 0;
+        padding-right: 24px;
+        justify-self: start;
+    }
+}
+
 @media (max-width: 850px) {
     .portal-topbar { min-height: 0; padding: 10px 16px; }
     .portal-topbar-inner { min-height: 62px; align-items: center; }
@@ -1079,6 +1253,22 @@ html.dark-mode .request-documents li, .dark-mode .request-documents li { border-
 @media (max-width: 560px) {
     .portal-topbar { padding: 9px 12px; }
     .portal-topbar-inner { min-height: 58px; }
+}
+
+/* Keep the compact portal header visible while mobile pages scroll. */
+@media (max-width: 767px) {
+    .platform-page .portal-topbar {
+        position: sticky !important;
+        inset-block-start: 0;
+        z-index: 1000;
+        background: rgba(255, 255, 255, .96);
+        backdrop-filter: blur(14px);
+    }
+
+    html.dark-mode .platform-page .portal-topbar,
+    .dark-mode .platform-page .portal-topbar {
+        background: rgba(25, 19, 40, .96);
+    }
 }
 
 /* Make the current-level message easy to read in every membership level card. */
@@ -1417,4 +1607,64 @@ html.dark-mode .weather-reading .weather-description, .dark-mode .weather-readin
         width: calc(100% - 24px);
         transform: translateX(-50%);
     }
+}
+
+/* Ensure the final mobile task rules win over all earlier workspace overrides. */
+@media (max-width: 767px) {
+    .platform-page .task-workspace-list {
+        padding: 16px 10px 25px 24px !important;
+    }
+
+    .platform-page .task-workspace-list .task-item {
+        width: 100% !important;
+        max-width: 100%;
+        min-width: 0;
+        margin: 0;
+        padding: 16px;
+        box-sizing: border-box;
+    }
+}
+
+html.dark-mode .platform-page .task-workspace-list .task-item,
+.dark-mode .platform-page .task-workspace-list .task-item {
+    border-color: #4a3b61;
+    background: #211a31;
+    color: #f4effb;
+}
+
+html.dark-mode .platform-page .task-workspace-list .task-title-row h3,
+.dark-mode .platform-page .task-workspace-list .task-title-row h3 {
+    color: #f4effb;
+}
+
+html.dark-mode .platform-page .task-workspace-list .task-item.is-completed h3,
+.dark-mode .platform-page .task-workspace-list .task-item.is-completed h3 {
+    color: #c5b8d0;
+}
+
+html.dark-mode .platform-page .task-workspace-list .task-content p,
+.dark-mode .platform-page .task-workspace-list .task-content p {
+    color: #c5b8d0;
+}
+
+html.dark-mode .platform-page .task-workspace-list .task-date,
+.dark-mode .platform-page .task-workspace-list .task-date {
+    color: #b6a9c4;
+}
+
+html.dark-mode .platform-page .task-workspace-list .task-status,
+.dark-mode .platform-page .task-workspace-list .task-status {
+    background: #302343;
+    color: #d7baff;
+}
+
+html.dark-mode .platform-page .task-workspace-list .task-status-mark,
+.dark-mode .platform-page .task-workspace-list .task-status-mark {
+    border-color: #7f6d91;
+}
+
+html.dark-mode .platform-page .task-workspace-list .task-item.is-completed .task-status-mark,
+.dark-mode .platform-page .task-workspace-list .task-item.is-completed .task-status-mark {
+    border-color: #7650a9;
+    background: #7650a9;
 }
